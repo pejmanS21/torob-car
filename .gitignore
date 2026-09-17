@@ -1,0 +1,7 @@
+.DS_Store
+.env
+node_modules/
+.next/
+frontend/out/
+*.tsbuildinfo
+assets/*.csv

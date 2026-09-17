@@ -1,0 +1,22 @@
+:root {
+  --red: #d9232e; --red-dark: #b81d26; --red-soft: #fdecec; --red-ink: #b81d26;
+  --ink: #172033; --ink-2: #344054; --muted: #667085; --faint: #98a2b3;
+  --line: #e5e8ee; --line-soft: #f1f3f6; --line-strong: #d0d5dd;
+  --bg: #f6f7f9; --surface: #fff; --fill: #f1f3f6; --photo: #eef0f3;
+  --green: #15803d; --green-soft: #ecfdf3; --amber: #b45309; --amber-soft: #fffbeb;
+  --orange: #c2410c; --orange-soft: #fff7ed;
+  --header-h: 64px; --tabbar-h: 64px; --page-w: 1200px;
+}
+@media (max-width: 767px) { :root { --header-h: 56px; } }
+html, body { margin: 0; background: var(--bg); color: var(--ink); direction: rtl; }
+body { font-family: var(--font-vazirmatn), system-ui, sans-serif; }
+* { box-sizing: border-box; }
+a { color: var(--ink); text-decoration: none; }
+a:hover { color: var(--red); }
+button, input, select { font-family: inherit; }
+button { cursor: pointer; }
+input:focus, select:focus { outline: 2px solid #d9232e33; }
+.leaflet-container { font-family: inherit; }
+@keyframes tk-pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes tk-dots { 0%, 80%, 100% { opacity: .2; } 40% { opacity: 1; } }
+@keyframes tk-sheet { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
