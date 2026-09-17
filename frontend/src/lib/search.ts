@@ -8,16 +8,29 @@ export const DEFAULT_MAX_KM = 250;
 const LOW_MILEAGE_KM = 90;
 const BILLION_TO_MILLION = 1000;
 const IMPLICIT_BILLION_BELOW = 5; // "زیر ۱.۲" means billions
+const THOUSAND_WORD = "هزار";
+const MILEAGE_UNIT_WORD = "کیلومتر";
+const MILEAGE_CONTEXT_WORD = "کارکرد";
+const BILLION_WORD = "میلیارد";
+const MILLION_WORD = "میلیون";
 
 export const DEFAULT_FILTERS: Filters = { models: [], cities: [], maxPrice: DEFAULT_MAX_PRICE, maxKm: DEFAULT_MAX_KM, gear: "همه", onlyBelow: false, year: null };
 
 const normalize = (q: string): string => en(q).toLowerCase().replace(/ي/g, "ی").replace(/ك/g, "ک");
 
+// A quantity clause ("زیر ۵۰ هزار کیلومتر") is a mileage clause, not a price clause, when its
+// unit is explicitly km/mileage-context, or when "هزار" appears with no price unit stated at all.
+const isMileageClause = (thousand: string | undefined, unit: string | undefined): boolean =>
+  unit === MILEAGE_UNIT_WORD || unit === MILEAGE_CONTEXT_WORD || (Boolean(thousand) && !unit);
+
 function parseMaxPrice(text: string): number | null {
-  const match = text.match(/(?:زیر|کمتر از|تا|حداکثر)\s*(\d+(?:\.\d+)?)\s*(میلیارد|میلیون)?/);
-  if (match) {
-    const value = parseFloat(match[1]);
-    const inBillions = match[2] === "میلیارد" || value < IMPLICIT_BILLION_BELOW;
+  const candidates = text.matchAll(
+    new RegExp(`(?:زیر|کمتر از|تا|حداکثر)\\s*(\\d+(?:\\.\\d+)?)\\s*(${THOUSAND_WORD})?\\s*(${BILLION_WORD}|${MILLION_WORD}|${MILEAGE_UNIT_WORD}|${MILEAGE_CONTEXT_WORD})?`, "g"),
+  );
+  for (const [, rawValue, thousand, unit] of candidates) {
+    if (isMileageClause(thousand, unit)) continue;
+    const value = parseFloat(rawValue);
+    const inBillions = unit === BILLION_WORD || (!unit && value < IMPLICIT_BILLION_BELOW);
     return Math.round(value * (inBillions ? BILLION_TO_MILLION : 1));
   }
   return /یک میلیارد/.test(text) ? BILLION_TO_MILLION : null;

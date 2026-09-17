@@ -50,6 +50,20 @@ test("sorting does not mutate and orders correctly", () => {
   expect(sortListings(LISTINGS, "score")[0].score).toBe(Math.max(...LISTINGS.map((l) => l.score)));
   expect(sortListings(LISTINGS, "new")[0].postedIdx).toBe(Math.min(...LISTINGS.map((l) => l.postedIdx)));
 });
+test("regression: a mileage-only clause is never mistaken for a price", () => {
+  const p = parseQuery("دنا کارکرد زیر ۵۰ هزار کیلومتر");
+  expect(p.maxPrice).toBeNull();
+  expect(p.maxKm).toBe(50);
+  expect(filterListings(LISTINGS, filtersFromQuery(p)).length).toBeGreaterThan(0);
+});
+test("regression: an explicit میلیون unit is never upgraded to billions by magnitude", () => {
+  expect(parseQuery("زیر ۴ میلیون").maxPrice).toBe(4);
+});
+test("regression: price parser skips a mileage clause to find a genuine price clause", () => {
+  const p = parseQuery("زیر ۷۰۰ میلیون کارکرد زیر ۵۰ هزار کیلومتر");
+  expect(p.maxPrice).toBe(700);
+  expect(p.maxKm).toBe(50);
+});
 test("activeFilterCount counts non-default filters", () => {
   expect(activeFilterCount(DEFAULT_FILTERS)).toBe(0);
   expect(activeFilterCount({ ...DEFAULT_FILTERS, models: ["206", "tara"], maxKm: 100, onlyBelow: true })).toBe(4);
