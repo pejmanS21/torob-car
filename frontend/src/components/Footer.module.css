@@ -1,0 +1,14 @@
+.footer {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  padding: 18px 24px;
+  font-size: 12px;
+  color: var(--faint);
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .footer {
+    display: none;
+  }
+}

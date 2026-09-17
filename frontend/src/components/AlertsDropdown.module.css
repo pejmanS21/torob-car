@@ -1,0 +1,102 @@
+.panel {
+  position: absolute;
+  top: 46px;
+  left: 0;
+  width: 340px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(23, 32, 51, 0.12);
+  padding: 8px;
+  animation: tk-pop 0.15s ease-out;
+  z-index: 60;
+}
+
+.head {
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.count {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.empty {
+  padding: 16px 10px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.loginWrap {
+  margin-top: 10px;
+}
+
+.loginButton {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 0;
+  background: var(--red);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.row:hover {
+  background: var(--bg);
+}
+
+.icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--red-soft);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.remove {
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 16px;
+  padding: 4px;
+}
+
+@media (max-width: 767px) {
+  .panel {
+    width: calc(100vw - 32px);
+    left: -8px;
+  }
+}

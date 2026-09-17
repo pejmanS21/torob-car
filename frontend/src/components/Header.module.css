@@ -1,0 +1,168 @@
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.inner {
+  max-width: var(--page-w);
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.brand span {
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.3px;
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: transparent;
+}
+
+.tab:hover {
+  background: var(--fill);
+}
+
+.tabActive {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.actions {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.chatButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.chatButton:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.chatAvatar {
+  display: block;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.iconButton {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+}
+
+.iconButton:hover {
+  border-color: var(--red);
+}
+
+.dot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--surface);
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 6px 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.userBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.login {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 0;
+  background: var(--red);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.login:hover {
+  background: var(--red-dark);
+}
+
+@media (max-width: 767px) {
+  .header {
+    padding-top: env(safe-area-inset-top);
+  }
+  .inner {
+    height: 56px;
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .nav,
+  .chatButton {
+    display: none;
+  }
+}

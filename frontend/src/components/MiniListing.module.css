@@ -1,0 +1,52 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.bordered {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.bordered:hover {
+  border-color: var(--red);
+}
+
+.thumb {
+  width: 56px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--photo);
+  background-size: cover;
+  background-position: center;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.meta {
+  color: var(--muted);
+}
+
+.price {
+  text-align: left;
+}
+
+.amount {
+  font-weight: 700;
+}
+
+.verdict {
+  font-size: 11px;
+}
