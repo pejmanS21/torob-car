@@ -17,6 +17,25 @@ const GREETING: ChatMessage = { role: "assistant", text: "سلام! بگو دن�
 interface Persisted { compare: string[]; saved: string[]; alerts: PriceAlert[]; loggedIn: boolean; }
 const EMPTY: Persisted = { compare: [], saved: [], alerts: [], loggedIn: false };
 
+interface Commit<T> { next: Persisted; result: T; }
+
+// Single read-modify-write path for `persisted`: reads the latest value from a
+// ref (never from render-scope state), so two synchronous calls in the same
+// tick each see the other's effect. The decision (compute) is pure — no
+// toasts or other side effects here, since setPersisted is called with a
+// plain value (not an updater function) and React/Strict Mode never
+// re-invokes this call site.
+function commitPersisted<T>(
+  ref: { current: Persisted },
+  setPersisted: (next: Persisted) => void,
+  compute: (current: Persisted) => Commit<T>,
+): T {
+  const { next, result } = compute(ref.current);
+  ref.current = next;
+  setPersisted(next);
+  return result;
+}
+
 export interface AppStateValue extends Persisted {
   bellOpen: boolean; chatOpen: boolean; chatMessages: ChatMessage[]; chatBusy: boolean; avatarAnimation: AvatarAnimation; toast: string;
   toggleCompare(id: string): void; removeFromCompare(id: string): void; toggleSaved(id: string): void;
@@ -46,16 +65,32 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const happyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const replyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const persistedRef = useRef<Persisted>(EMPTY);
+  const chatBusyRef = useRef(false);
 
   // Load after mount so server and first client render match.
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration-safe load from localStorage
-  useEffect(() => { setPersisted(readPersisted()); setHydrated(true); }, []);
+  useEffect(() => {
+    const loaded = readPersisted();
+    persistedRef.current = loaded;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration-safe load from localStorage
+    setPersisted(loaded);
+    setHydrated(true);
+  }, []);
   useEffect(() => {
     if (!hydrated) return;
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)); } catch { /* storage unavailable: state stays in memory */ }
   }, [persisted, hydrated]);
 
-  const patch = useCallback((change: (p: Persisted) => Partial<Persisted>) => setPersisted((p) => ({ ...p, ...change(p) })), []);
+  // Clear pending timers on unmount so a fired timeout never calls setState
+  // after teardown (Strict Mode mounts/unmounts/remounts in dev).
+  useEffect(() => {
+    return () => {
+      clearTimeout(toastTimer.current);
+      clearTimeout(happyTimer.current);
+      clearTimeout(replyTimer.current);
+    };
+  }, []);
 
   const showToast = useCallback((text: string) => {
     setToast(text);
@@ -64,48 +99,67 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toggleCompare = useCallback((id: string) => {
-    if (persisted.compare.includes(id)) { patch((p) => ({ compare: p.compare.filter((x) => x !== id) })); return; }
-    if (persisted.compare.length >= MAX_COMPARE) { showToast("حداکثر سه خودرو می‌تونی مقایسه کنی"); return; }
-    patch((p) => ({ compare: [...p.compare, id] }));
-    showToast("به مقایسه اضافه شد");
-  }, [persisted.compare, patch, showToast]);
+    const outcome = commitPersisted(persistedRef, setPersisted, (p) => {
+      if (p.compare.includes(id)) {
+        return { next: { ...p, compare: p.compare.filter((x) => x !== id) }, result: "removed" as const };
+      }
+      if (p.compare.length >= MAX_COMPARE) {
+        return { next: p, result: "limit" as const };
+      }
+      return { next: { ...p, compare: [...p.compare, id] }, result: "added" as const };
+    });
+    if (outcome === "limit") showToast("حداکثر سه خودرو می‌تونی مقایسه کنی");
+    else if (outcome === "added") showToast("به مقایسه اضافه شد");
+  }, [showToast]);
 
-  const removeFromCompare = useCallback((id: string) => patch((p) => ({ compare: p.compare.filter((x) => x !== id) })), [patch]);
+  const removeFromCompare = useCallback((id: string) => {
+    commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, compare: p.compare.filter((x) => x !== id) }, result: undefined }));
+  }, []);
 
   const toggleSaved = useCallback((id: string) => {
-    const wasSaved = persisted.saved.includes(id);
-    patch((p) => ({ saved: wasSaved ? p.saved.filter((x) => x !== id) : [...p.saved, id] }));
+    const wasSaved = commitPersisted(persistedRef, setPersisted, (p) => {
+      const already = p.saved.includes(id);
+      return { next: { ...p, saved: already ? p.saved.filter((x) => x !== id) : [...p.saved, id] }, result: already };
+    });
     showToast(wasSaved ? "از نشان‌ها حذف شد" : "نشان شد");
-  }, [persisted.saved, patch, showToast]);
+  }, [showToast]);
 
   const addAlert = useCallback((alert: PriceAlert) => {
-    if (!persisted.loggedIn) { setBellOpen(true); showToast("برای هشدار قیمت اول وارد شو"); return; }
-    patch((p) => ({ alerts: [...p.alerts, alert] }));
-    showToast("هشدار قیمت ذخیره شد");
-  }, [persisted.loggedIn, patch, showToast]);
+    const outcome = commitPersisted(persistedRef, setPersisted, (p) => {
+      if (!p.loggedIn) return { next: p, result: "blocked" as const };
+      return { next: { ...p, alerts: [...p.alerts, alert] }, result: "saved" as const };
+    });
+    if (outcome === "blocked") { setBellOpen(true); showToast("برای هشدار قیمت اول وارد شو"); }
+    else showToast("هشدار قیمت ذخیره شد");
+  }, [showToast]);
 
-  const removeAlert = useCallback((index: number) => patch((p) => ({ alerts: p.alerts.filter((_, i) => i !== index) })), [patch]);
+  const removeAlert = useCallback((index: number) => {
+    commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: p.alerts.filter((_, i) => i !== index) }, result: undefined }));
+  }, []);
 
   const toggleLogin = useCallback(() => {
-    showToast(persisted.loggedIn ? "خارج شدی" : "خوش اومدی علی!");
-    patch((p) => ({ loggedIn: !p.loggedIn }));
+    const nextLoggedIn = commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, loggedIn: !p.loggedIn }, result: !p.loggedIn }));
+    showToast(nextLoggedIn ? "خوش اومدی علی!" : "خارج شدی");
     setBellOpen(false);
-  }, [persisted.loggedIn, patch, showToast]);
+  }, [showToast]);
 
   const sendChat = useCallback((raw: string) => {
     const text = raw.trim();
-    if (!text || chatBusy) return;
+    if (!text || chatBusyRef.current) return;
+    chatBusyRef.current = true;
     setChatMessages((m) => [...m, { role: "user", text }]);
     setChatBusy(true);
-    const compareIds = persisted.compare;
-    setTimeout(() => {
+    const compareIds = persistedRef.current.compare;
+    clearTimeout(replyTimer.current);
+    replyTimer.current = setTimeout(() => {
       setChatMessages((m) => [...m, { role: "assistant", ...scriptedReply(text, LISTINGS, compareIds) }]);
+      chatBusyRef.current = false;
       setChatBusy(false);
       setRecentReply(true);
       clearTimeout(happyTimer.current);
       happyTimer.current = setTimeout(() => setRecentReply(false), HAPPY_MS);
     }, REPLY_DELAY_MS);
-  }, [chatBusy, persisted.compare]);
+  }, []);
 
   const avatarAnimation: AvatarAnimation = chatBusy ? "thinking" : recentReply ? "happy" : "idle";
 
