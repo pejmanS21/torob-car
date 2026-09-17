@@ -1,0 +1,78 @@
+.row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  color: var(--ink);
+}
+
+.row:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 6px 18px rgba(23, 32, 51, 0.06);
+}
+
+.thumb {
+  width: 110px;
+  height: 78px;
+  border-radius: 8px;
+  background: var(--photo);
+  background-size: cover;
+  background-position: center;
+}
+
+.text {
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.price {
+  text-align: left;
+  padding-inline-end: 8px;
+}
+
+.amount {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.diff {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.score {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.scoreVal {
+  color: var(--ink);
+}
