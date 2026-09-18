@@ -1,0 +1,555 @@
+{
+  "categories": {
+    "heavy": 60,
+    "rental": 8,
+    "light": 420,
+    "classic": 9,
+    "motorcycle": 120
+  },
+  "models": [
+    {
+      "brand": "پژو",
+      "model": "پژو 206",
+      "count": 98
+    },
+    {
+      "brand": "پژو",
+      "model": "پژو 405",
+      "count": 56
+    },
+    {
+      "brand": "پراید",
+      "model": "پراید صندوق دار",
+      "count": 45
+    },
+    {
+      "brand": "پژو",
+      "model": "پژو 207i",
+      "count": 41
+    },
+    {
+      "brand": "پژو",
+      "model": "پژو پارس",
+      "count": 40
+    },
+    {
+      "brand": "پراید",
+      "model": "پراید 131",
+      "count": 36
+    },
+    {
+      "brand": "سمند",
+      "model": "سمند lx",
+      "count": 35
+    },
+    {
+      "brand": "پراید",
+      "model": "پراید saba",
+      "count": 26
+    },
+    {
+      "brand": "سمند",
+      "model": "سمند سورن",
+      "count": 26
+    },
+    {
+      "brand": "سایر",
+      "model": "سایر",
+      "count": 19
+    },
+    {
+      "brand": "ساینا",
+      "model": "ساینا دنده ای",
+      "count": 18
+    },
+    {
+      "brand": "دلتا",
+      "model": "دلتا (شاهین",
+      "count": 8
+    },
+    {
+      "brand": "کویر",
+      "model": "کویر موتور",
+      "count": 6
+    },
+    {
+      "brand": "اسکوتر(سایر)",
+      "model": "اسکوتر(سایر)",
+      "count": 5
+    },
+    {
+      "brand": "اس وای ام",
+      "model": "اس وای ام گلکسی",
+      "count": 5
+    },
+    {
+      "brand": "باجاج",
+      "model": "باجاج پالس",
+      "count": 4
+    },
+    {
+      "brand": "پرواز",
+      "model": "پرواز cg",
+      "count": 4
+    },
+    {
+      "brand": "جهان",
+      "model": "جهان همتا",
+      "count": 3
+    },
+    {
+      "brand": "هوندا",
+      "model": "هوندا کلیک",
+      "count": 3
+    },
+    {
+      "brand": "یاماها",
+      "model": "یاماها",
+      "count": 3
+    },
+    {
+      "brand": "یاماها",
+      "model": "یاماها nmax",
+      "count": 3
+    },
+    {
+      "brand": "آپاچی",
+      "model": "آپاچی 160",
+      "count": 2
+    },
+    {
+      "brand": "آرمان",
+      "model": "آرمان موتور",
+      "count": 2
+    },
+    {
+      "brand": "احسان",
+      "model": "احسان cg",
+      "count": 2
+    },
+    {
+      "brand": "اس وای ام",
+      "model": "اس وای ام 200",
+      "count": 2
+    },
+    {
+      "brand": "اس وای ام",
+      "model": "اس وای ام galaxy",
+      "count": 2
+    },
+    {
+      "brand": "بنلی",
+      "model": "بنلی 250",
+      "count": 2
+    },
+    {
+      "brand": "بنلی",
+      "model": "بنلی پانارئا",
+      "count": 2
+    },
+    {
+      "brand": "بوکسر(باکسر)",
+      "model": "بوکسر(باکسر) 150",
+      "count": 2
+    },
+    {
+      "brand": "دایچی",
+      "model": "دایچی 200",
+      "count": 2
+    },
+    {
+      "brand": "کثیر",
+      "model": "کثیر (",
+      "count": 2
+    },
+    {
+      "brand": "لیفان",
+      "model": "لیفان",
+      "count": 2
+    },
+    {
+      "brand": "4 چرخ",
+      "model": "4 چرخ (سایر)",
+      "count": 1
+    },
+    {
+      "brand": "آپاچی",
+      "model": "آپاچی 180",
+      "count": 1
+    },
+    {
+      "brand": "آپاچی",
+      "model": "آپاچی 200",
+      "count": 1
+    },
+    {
+      "brand": "آپریلیا",
+      "model": "آپریلیا sxr",
+      "count": 1
+    },
+    {
+      "brand": "اس وای ام",
+      "model": "اس وای ام لاکی",
+      "count": 1
+    },
+    {
+      "brand": "اصفهان",
+      "model": "اصفهان سیکلت",
+      "count": 1
+    },
+    {
+      "brand": "برقی",
+      "model": "برقی (سایر)",
+      "count": 1
+    },
+    {
+      "brand": "بنلی",
+      "model": "بنلی 150",
+      "count": 1
+    },
+    {
+      "brand": "بنلی",
+      "model": "بنلی تی",
+      "count": 1
+    },
+    {
+      "brand": "پژو",
+      "model": "پژو جانگو",
+      "count": 1
+    },
+    {
+      "brand": "تکرو",
+      "model": "تکرو 200",
+      "count": 1
+    },
+    {
+      "brand": "تی وی اس",
+      "model": "تی وی اس hlx",
+      "count": 1
+    },
+    {
+      "brand": "تی وی اس",
+      "model": "تی وی اس آپاچی",
+      "count": 1
+    },
+    {
+      "brand": "دایچی",
+      "model": "دایچی",
+      "count": 1
+    },
+    {
+      "brand": "روان",
+      "model": "روان cg",
+      "count": 1
+    },
+    {
+      "brand": "زمرد",
+      "model": "زمرد کویر",
+      "count": 1
+    },
+    {
+      "brand": "زونتس",
+      "model": "زونتس 250",
+      "count": 1
+    },
+    {
+      "brand": "زیگما",
+      "model": "زیگما cs",
+      "count": 1
+    },
+    {
+      "brand": "سوزوکی",
+      "model": "سوزوکی پاکشتی",
+      "count": 1
+    },
+    {
+      "brand": "فونیکس",
+      "model": "فونیکس تیگو",
+      "count": 1
+    },
+    {
+      "brand": "کاوازاکی",
+      "model": "کاوازاکی z",
+      "count": 1
+    },
+    {
+      "brand": "کبیر",
+      "model": "کبیر cg",
+      "count": 1
+    },
+    {
+      "brand": "کیا",
+      "model": "کیا اسپورتیج",
+      "count": 1
+    },
+    {
+      "brand": "کی تی ام",
+      "model": "کی تی ام rc",
+      "count": 1
+    },
+    {
+      "brand": "کی تی ام",
+      "model": "کی تی ام مینی",
+      "count": 1
+    },
+    {
+      "brand": "لیفان",
+      "model": "لیفان cg",
+      "count": 1
+    },
+    {
+      "brand": "لیفان",
+      "model": "لیفان kps",
+      "count": 1
+    },
+    {
+      "brand": "لیفان",
+      "model": "لیفان طرح",
+      "count": 1
+    }
+  ],
+  "cities": [
+    {
+      "value": "تهران",
+      "count": 169
+    },
+    {
+      "value": "مشهد",
+      "count": 43
+    },
+    {
+      "value": "کرج",
+      "count": 28
+    },
+    {
+      "value": "اصفهان",
+      "count": 27
+    },
+    {
+      "value": "تبریز",
+      "count": 24
+    },
+    {
+      "value": "اهواز",
+      "count": 22
+    },
+    {
+      "value": "رشت",
+      "count": 15
+    },
+    {
+      "value": "شیراز",
+      "count": 13
+    },
+    {
+      "value": "یزد",
+      "count": 13
+    },
+    {
+      "value": "ارومیه",
+      "count": 9
+    },
+    {
+      "value": "اسلام‌شهر",
+      "count": 9
+    },
+    {
+      "value": "بندرعباس",
+      "count": 9
+    },
+    {
+      "value": "قم",
+      "count": 9
+    },
+    {
+      "value": "سنندج",
+      "count": 8
+    },
+    {
+      "value": "کرمان",
+      "count": 8
+    },
+    {
+      "value": "اردبیل",
+      "count": 7
+    },
+    {
+      "value": "ایلام",
+      "count": 7
+    },
+    {
+      "value": "کرمانشاه",
+      "count": 7
+    },
+    {
+      "value": "پرند",
+      "count": 6
+    },
+    {
+      "value": "زاهدان",
+      "count": 6
+    },
+    {
+      "value": "شهریار",
+      "count": 6
+    },
+    {
+      "value": "نظرآباد",
+      "count": 6
+    },
+    {
+      "value": "دزفول",
+      "count": 5
+    },
+    {
+      "value": "اندیشه",
+      "count": 4
+    },
+    {
+      "value": "بهارستان",
+      "count": 4
+    },
+    {
+      "value": "فردیس",
+      "count": 4
+    },
+    {
+      "value": "فلاورجان",
+      "count": 4
+    },
+    {
+      "value": "گرگان",
+      "count": 4
+    },
+    {
+      "value": "یاسوج",
+      "count": 4
+    },
+    {
+      "value": "اراک",
+      "count": 3
+    },
+    {
+      "value": "بروجرد",
+      "count": 3
+    },
+    {
+      "value": "سیرجان",
+      "count": 3
+    },
+    {
+      "value": "قزوین",
+      "count": 3
+    },
+    {
+      "value": "لنگرود",
+      "count": 3
+    },
+    {
+      "value": "نسیم‌شهر",
+      "count": 3
+    },
+    {
+      "value": "هشتگرد",
+      "count": 3
+    },
+    {
+      "value": "آبادان",
+      "count": 2
+    },
+    {
+      "value": "آستانه اشرفیه",
+      "count": 2
+    },
+    {
+      "value": "بجنورد",
+      "count": 2
+    },
+    {
+      "value": "پاکدشت",
+      "count": 2
+    },
+    {
+      "value": "چهاردانگه (تهران)",
+      "count": 2
+    },
+    {
+      "value": "رفسنجان",
+      "count": 2
+    },
+    {
+      "value": "ساوه",
+      "count": 2
+    },
+    {
+      "value": "سبزوار",
+      "count": 2
+    },
+    {
+      "value": "قدس",
+      "count": 2
+    },
+    {
+      "value": "قرچک",
+      "count": 2
+    },
+    {
+      "value": "کیش",
+      "count": 2
+    },
+    {
+      "value": "محمدشهر",
+      "count": 2
+    },
+    {
+      "value": "مشکین‌دشت",
+      "count": 2
+    },
+    {
+      "value": "نجف‌آباد",
+      "count": 2
+    },
+    {
+      "value": "نهاوند",
+      "count": 2
+    },
+    {
+      "value": "همدان",
+      "count": 2
+    },
+    {
+      "value": "آستارا",
+      "count": 1
+    },
+    {
+      "value": "آفتاب",
+      "count": 1
+    },
+    {
+      "value": "اسدآباد",
+      "count": 1
+    },
+    {
+      "value": "اسلام‌‌آباد غرب",
+      "count": 1
+    },
+    {
+      "value": "اقبالیه",
+      "count": 1
+    },
+    {
+      "value": "امیدیه",
+      "count": 1
+    },
+    {
+      "value": "امیرکلا",
+      "count": 1
+    },
+    {
+      "value": "اندیمشک",
+      "count": 1
+    }
+  ],
+  "model_count": 69,
+  "data_as_of": "2026-09-17T16:43:20Z"
+}

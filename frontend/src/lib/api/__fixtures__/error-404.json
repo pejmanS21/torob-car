@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "listing_not_found",
+    "message": "Listing not found",
+    "details": {
+      "listing_id": "00000000-0000-8000-8000-000000000000"
+    }
+  }
+}

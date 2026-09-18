@@ -1,0 +1,31 @@
+{
+  "error": {
+    "code": "invalid_search",
+    "message": "Invalid search filters",
+    "details": {
+      "errors": [
+        {
+          "type": "value_error",
+          "loc": [],
+          "msg": "Value error, year must be a Jalali year up to 1406",
+          "input": {
+            "category": null,
+            "vehicles": [],
+            "year_min": 1200,
+            "year_max": 1200,
+            "price_min": null,
+            "price_max": null,
+            "km_max": null,
+            "cities": [],
+            "gearbox": null,
+            "fuel": null,
+            "colors": [],
+            "only_below_market": false,
+            "text": null,
+            "sort": "relevance"
+          }
+        }
+      ]
+    }
+  }
+}

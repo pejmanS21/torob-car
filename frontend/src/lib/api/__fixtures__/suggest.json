@@ -1,0 +1,72 @@
+[
+  {
+    "brand": "پژو",
+    "model": "پژو 206",
+    "trim": "پژو 206 تیپ ۲",
+    "category": "light",
+    "count": 54
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو 207i",
+    "trim": "پژو 207i پانوراما دنده‌ای",
+    "category": "light",
+    "count": 40
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو 405",
+    "trim": "پژو 405 GLX بنزینی",
+    "category": "light",
+    "count": 38
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو 206",
+    "trim": "پژو 206 تیپ ۵",
+    "category": "light",
+    "count": 26
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو پارس",
+    "trim": "پژو پارس سال",
+    "category": "light",
+    "count": 23
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو 405",
+    "trim": "پژو 405 GLX - دوگانه سوز CNG",
+    "category": "light",
+    "count": 18
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو 206",
+    "trim": "پژو 206 SD V8",
+    "category": "light",
+    "count": 18
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو پارس",
+    "trim": "پژو پارس XU7",
+    "category": "light",
+    "count": 17
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو جانگو",
+    "trim": "پژو جانگو 125",
+    "category": "motorcycle",
+    "count": 1
+  },
+  {
+    "brand": "پژو",
+    "model": "پژو 207i",
+    "trim": "پژو 207i دنده‌ای TU3",
+    "category": "rental",
+    "count": 1
+  }
+]

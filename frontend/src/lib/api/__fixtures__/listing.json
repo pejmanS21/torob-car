@@ -1,0 +1,46 @@
+{
+  "id": "01a0b5d6-99cb-8108-8c29-d1e016b3b26b",
+  "token": "gany4J5L",
+  "title": "پژو 206 فوری  مدل 84شاسی سالم",
+  "category": "light",
+  "brand": "پژو",
+  "model": "پژو 206",
+  "trim": "پژو 206 تیپ ۲",
+  "year": 1384,
+  "km": 300000,
+  "price": 495000000,
+  "city": "تهران",
+  "district": "شهرک رضویه",
+  "lat": 35.612,
+  "lng": 51.504,
+  "gearbox": "manual",
+  "fuel": "petrol",
+  "body_condition": null,
+  "insurance_months": 1,
+  "thumbnail_url": "https://s100.divarcdn.com/static/photo/neda/webp_thumbnail/8jb6PxrMIlJyKur6NPkEqA/efbb5a8b-297e-4517-ba2a-24cffbfb495a.webp",
+  "posted_at": "2026-09-14T12:12:31Z",
+  "est_price": 583741459,
+  "diff_pct": -15.2,
+  "deal_score": 88,
+  "verdict": "cheap",
+  "match_score": null,
+  "is_exact": true,
+  "near_miss_labels": [],
+  "url": "https://divar.ir/v/-/gany4J5L",
+  "description": "توضیحات فروشنده (در فیکسچر کوتاه شده است).",
+  "image_urls": [
+    "https://s100.divarcdn.com/static/photo/neda/webp_post/PL0Wc2nwATUqHldXGmwXGA/efbb5a8b-297e-4517-ba2a-24cffbfb495a.webp"
+  ],
+  "color": "نقره‌ای",
+  "is_dealer": false,
+  "attributes": {
+    "مالکیت خودرو": "مالک خودرو هستم"
+  },
+  "price_breakdown": {
+    "base": 585000000,
+    "km_adjustment": 4637838,
+    "insurance_adjustment": -5850000,
+    "est_basis": "trim_year",
+    "est_sample_size": 8
+  }
+}
