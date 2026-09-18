@@ -1,4 +1,5 @@
 import type { BreakdownRow, Verdict } from "@/lib/types";
+import { BreakdownRows } from "./BreakdownList";
 import { VerdictBadge } from "./VerdictBadge";
 import styles from "./BreakdownCard.module.css";
 
@@ -14,17 +15,7 @@ export function BreakdownCard({ verdict, diffText, rows, estFa, priceFa, note }:
         </span>
       </div>
       <div className={styles.body}>
-        {rows.map((row) => (
-          <div key={row.label} className={styles.row}>
-            <div>
-              <div>{row.label}</div>
-              <div className={styles.note}>{row.note}</div>
-            </div>
-            <span className={styles.val} style={{ color: row.color }}>
-              {row.val}
-            </span>
-          </div>
-        ))}
+        <BreakdownRows rows={rows} />
         <div className={styles.total}>
           <span>تخمین قیمت بازار</span>
           <span>{estFa} میلیون</span>

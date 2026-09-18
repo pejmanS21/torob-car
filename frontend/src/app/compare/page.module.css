@@ -1,0 +1,41 @@
+.screen {
+  padding-top: 24px;
+}
+
+.title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.lead {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.empty {
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  padding: 56px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.empty > div {
+  margin-top: 14px;
+}
+
+.cta {
+  display: inline-flex;
+  height: 38px;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
