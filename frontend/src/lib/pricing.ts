@@ -1,72 +1,78 @@
-import { AMBER, GREEN, NOW_YEAR, RED, isNegativeIssue } from "./catalog";
-import { fa, num } from "./format";
-import type { BodyCondition, BreakdownRow, CarModel, Gear, Listing, PriceModelResult, Verdict } from "./types";
+import type { EstimateBasis, EstimateRequest, EstimateResponse, ListingDetail, Verdict } from "./api/types";
+import { fa, formatToman, num } from "./format";
+import { BASIS_NAMES, BODY_NAMES } from "./labels";
+import { AMBER, GREEN, INK, NEUTRAL, RED } from "./theme";
+import type { BreakdownRow, VerdictStyle } from "./types";
 
-const KM_PER_YEAR = 18000;
-const KM_BASELINE = 8000;
-const KM_WEIGHT = 0.08;
-const INSURANCE_NEUTRAL_MONTHS = 6;
-const INSURANCE_WEIGHT_PER_MONTH = 0.002;
-const AUTOMATIC_PREMIUM = 1.06;
-export const CHEAP_THRESHOLD_PCT = -5;
-export const EXPENSIVE_THRESHOLD_PCT = 6;
-const NEUTRAL_COLOR = "#667085";
-const INK = "#172033";
+const VERDICTS: Record<Verdict, VerdictStyle> = {
+  cheap: { label: "ارزان‌تر از بازار", color: GREEN, bg: "#ecfdf3", icon: "M16 17h6v-6M22 17l-8.5-8.5-5 5L2 7" },
+  expensive: { label: "بالاتر از بازار", color: RED, bg: "#fdecec", icon: "M16 7h6v6M22 7l-8.5 8.5-5-5L2 17" },
+  fair: { label: "قیمت منصفانه", color: AMBER, bg: "#fffbeb", icon: "M20 6 9 17l-5-5" },
+  unknown: { label: "بدون تخمین", color: NEUTRAL, bg: "#f1f3f6", icon: "M12 8v4M12 16h.01" },
+};
+const NO_ESTIMATE_TEXT = "تخمینی برای این آگهی نداریم";
+const HIGH_KM_FACTOR = 1.02;
+const LOW_KM_FACTOR = 0.97;
 
-export function priceModel(model: CarModel, year: number, km: number, body: BodyCondition, gear: Gear, insMonths: number): PriceModelResult {
-  const base = model.base[year];
-  if (base === undefined) throw new RangeError(`No base price for ${model.id} year ${year}`);
-  const age = Math.max(0.5, NOW_YEAR - year);
-  const expKm = age * KM_PER_YEAR + KM_BASELINE;
-  const kmF = 1 - Math.max(-0.5, Math.min(1, (km - expKm) / expKm)) * KM_WEIGHT;
-  const insF = 1 + (insMonths - INSURANCE_NEUTRAL_MONTHS) * INSURANCE_WEIGHT_PER_MONTH;
-  const gearF = gear === "اتوماتیک" && model.gears.length > 1 ? AUTOMATIC_PREMIUM : 1;
-  const est = base * body.f * kmF * insF * gearF;
-  return { base, expKm, kmF, insF, gearF, est, parts: { km: base * (kmF - 1), body: base * (body.f - 1), ins: base * (insF - 1), gear: base * (gearF - 1) } };
-}
+export const verdictStyle = (verdict: Verdict): VerdictStyle => VERDICTS[verdict];
 
-export function verdictOf(diffPct: number): Verdict {
-  if (diffPct <= CHEAP_THRESHOLD_PCT) return { label: "ارزان‌تر از بازار", color: GREEN, bg: "#ecfdf3", icon: "M16 17h6v-6M22 17l-8.5-8.5-5 5L2 7" };
-  if (diffPct >= EXPENSIVE_THRESHOLD_PCT) return { label: "بالاتر از بازار", color: RED, bg: "#fdecec", icon: "M16 7h6v6M22 7l-8.5 8.5-5-5L2 17" };
-  return { label: "قیمت منصفانه", color: AMBER, bg: "#fffbeb", icon: "M20 6 9 17l-5-5" };
-}
-
-export const diffText = (d: number): string =>
-  d > 0.5 ? `${fa(Math.abs(d).toFixed(0))}٪ بالاتر از تخمین`
+export const diffText = (d: number | null): string =>
+  d === null ? NO_ESTIMATE_TEXT
+  : d > 0.5 ? `${fa(Math.abs(d).toFixed(0))}٪ بالاتر از تخمین`
   : d < -0.5 ? `${fa(Math.abs(d).toFixed(0))}٪ ارزان‌تر از تخمین`
   : "برابر تخمین بازار";
 
 export const scoreColor = (score: number): string => (score >= 70 ? GREEN : score >= 45 ? AMBER : RED);
 
-export const signedMillions = (d: number): string => (d >= 0 ? "+" : "−") + num(Math.abs(d));
-export const deltaColor = (d: number): string => (Math.abs(d) < 1 ? NEUTRAL_COLOR : d > 0 ? GREEN : RED);
+export const signedToman = (d: number): string => (d >= 0 ? "+" : "−") + formatToman(Math.abs(d));
+export const deltaColor = (d: number): string => (Math.abs(d) < 1 ? NEUTRAL : d > 0 ? GREEN : RED);
 
-export function breakdownRows(l: Listing): BreakdownRow[] {
-  const p = l.pm;
-  const rows: BreakdownRow[] = [
-    { label: "قیمت پایهٔ مدل و سال", note: `میانهٔ آگهی‌های ${l.modelName} مدل ${fa(l.year)}`, val: `${num(p.base)} میلیون`, color: INK },
-    { label: "کارکرد", note: `${num(l.km)} کیلومتر در برابر انتظار ${num(p.expKm)}`, val: signedMillions(p.parts.km), color: deltaColor(p.parts.km) },
-    { label: "وضعیت بدنه", note: l.body.name, val: signedMillions(p.parts.body), color: deltaColor(p.parts.body) },
-    { label: "بیمهٔ شخص ثالث", note: `${fa(l.ins)} ماه باقی‌مانده`, val: signedMillions(p.parts.ins), color: deltaColor(p.parts.ins) },
+export const basisText = (basis: EstimateBasis, sampleSize: number): string =>
+  basis === "none" ? BASIS_NAMES.none : `میانهٔ ${fa(sampleSize)} آگهی ${BASIS_NAMES[basis]}`;
+
+/** Base, km and insurance rows from the API breakdown — nothing is computed client-side. */
+export function breakdownRows(detail: ListingDetail): BreakdownRow[] {
+  const p = detail.price_breakdown;
+  if (p.base === null || p.km_adjustment === null || p.insurance_adjustment === null) return [];
+  return [
+    { label: "قیمت پایهٔ تیپ و سال", note: basisText(p.est_basis, p.est_sample_size), val: formatToman(p.base), color: INK },
+    { label: "کارکرد", note: detail.km === null ? "کارکرد نامشخص" : `${num(detail.km)} کیلومتر`, val: signedToman(p.km_adjustment), color: deltaColor(p.km_adjustment) },
+    { label: "بیمهٔ شخص ثالث", note: detail.insurance_months === null ? "نامشخص" : `${fa(detail.insurance_months)} ماه باقی‌مانده`, val: signedToman(p.insurance_adjustment), color: deltaColor(p.insurance_adjustment) },
   ];
-  if (p.gearF !== 1) rows.push({ label: "گیربکس اتوماتیک", note: "نسبت به نسخهٔ دنده‌ای", val: signedMillions(p.parts.gear), color: GREEN });
-  if (l.extra) rows.push({ label: "تعویض موتور", note: "استخراج‌شده از متن آگهی", val: signedMillions(p.base * l.extra), color: RED });
-  return rows;
 }
 
-export function summaryOf(l: Listing): string {
-  const v = verdictOf(l.diffPct);
-  const neg = l.tags.filter(isNegativeIssue);
-  const pos = l.tags.filter((t) => !isNegativeIssue(t));
-  const kmWord = l.pm.kmF > 1.02 ? "کم‌کارکرد" : l.pm.kmF < 0.97 ? "پرکارکرد" : "با کارکرد معمول";
-  const priceWord = v.label === "قیمت منصفانه" ? "در محدودهٔ بازار" : v.label.replace("بازار", "تخمین بازار");
-  const advice = l.diffPct <= CHEAP_THRESHOLD_PCT ? "ارزش بازدید سریع دارد، ولی دلیل قیمت پایین را حضوری بپرس."
-    : l.diffPct >= EXPENSIVE_THRESHOLD_PCT ? "جای مذاکره دارد." : "اگر بازدید رضایت‌بخش بود قیمت منطقی است.";
-  return `${l.modelName} مدل ${fa(l.year)}، ${kmWord} نسبت به سنش. بدنه «${l.body.name}»${neg.length ? ` و فروشنده به ${neg.join(" و ")} اشاره کرده` : ""}. ${pos.length ? `نکات مثبت: ${pos.join("، ")}. ` : ""}قیمت ${priceWord} است؛ ${advice}`;
+const kmWord = (detail: ListingDetail): string => {
+  const p = detail.price_breakdown;
+  if (p.base === null || p.km_adjustment === null) return "";
+  const factor = 1 + p.km_adjustment / p.base;
+  return factor > HIGH_KM_FACTOR ? "کم‌کارکرد نسبت به سنش" : factor < LOW_KM_FACTOR ? "پرکارکرد نسبت به سنش" : "با کارکرد معمول";
+};
+
+/** One-paragraph summary from real fields only: title, km, body, verdict and advice. */
+export function summaryOf(detail: ListingDetail): string {
+  const parts = [detail.trim ?? detail.title, detail.year ? `مدل ${fa(detail.year)}` : "", kmWord(detail)].filter(Boolean).join("، ");
+  const body = detail.body_condition ? ` بدنه «${BODY_NAMES[detail.body_condition]}».` : "";
+  const price =
+    detail.verdict === "cheap" ? " قیمت ارزان‌تر از تخمین بازار است؛ ارزش بازدید سریع دارد، ولی دلیل قیمت پایین را حضوری بپرس."
+    : detail.verdict === "expensive" ? " قیمت بالاتر از تخمین بازار است؛ جای مذاکره دارد."
+    : detail.verdict === "fair" ? " قیمت در محدودهٔ بازار است؛ اگر بازدید رضایت‌بخش بود منطقی است."
+    : " برای این آگهی تخمین قیمت نداریم؛ با آگهی‌های مشابه مقایسه کن.";
+  return `${parts}.${body}${price}`;
 }
 
-export function verdictNote(l: Listing): string {
-  if (l.diffPct <= CHEAP_THRESHOLD_PCT) return `این آگهی حدود ${num(l.est - l.price)} میلیون زیر تخمین ماست. قبل از پرداخت، دلیل قیمت پایین (سند، رنگ، تصادف) رو حضوری چک کن.`;
-  if (l.diffPct >= EXPENSIVE_THRESHOLD_PCT) return `حدود ${num(l.price - l.est)} میلیون بالاتر از تخمین. با اشاره به آگهی‌های مشابه، جای مذاکره داری.`;
+export function verdictNote(detail: ListingDetail): string {
+  if (detail.est_price === null || detail.price === null) return "برای این آگهی آگهی‌های مشابه کافی برای تخمین نداریم.";
+  if (detail.verdict === "cheap") return `این آگهی حدود ${formatToman(detail.est_price - detail.price)} زیر تخمین ماست. قبل از پرداخت، دلیل قیمت پایین (سند، رنگ، تصادف) رو حضوری چک کن.`;
+  if (detail.verdict === "expensive") return `حدود ${formatToman(detail.price - detail.est_price)} بالاتر از تخمین. با اشاره به آگهی‌های مشابه، جای مذاکره داری.`;
   return "قیمت در بازهٔ منطقی آگهی‌های مشابه است.";
+}
+
+/** Rows for the /estimates result: the same three rows, from the API breakdown. */
+export function estimateBreakdownRows(result: EstimateResponse, request: EstimateRequest | null): BreakdownRow[] {
+  const b = result.breakdown;
+  return [
+    { label: "قیمت پایهٔ تیپ و سال", note: basisText(result.est_basis, result.est_sample_size), val: formatToman(b.base), color: INK },
+    { label: "کارکرد", note: request?.km == null ? "کارکرد نامشخص" : `${num(request.km)} کیلومتر`, val: signedToman(b.km_adjustment), color: deltaColor(b.km_adjustment) },
+    { label: "بیمهٔ شخص ثالث", note: request?.insurance_months == null ? "نامشخص" : `${fa(request.insurance_months)} ماه`, val: signedToman(b.insurance_adjustment), color: deltaColor(b.insurance_adjustment) },
+  ];
 }

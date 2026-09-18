@@ -1,76 +1,24 @@
 import { expect, test } from "bun:test";
-import { LISTINGS } from "./listings";
-import { DEFAULT_FILTERS, activeFilterCount, alertMatches, chipsOf, filterListings, filtersFromQuery, parseQuery, sortListings } from "./search";
+import { activeFilterCount, paramsToQuery, queryToParams } from "./search";
 
-test("home example: 206 low-mileage Tehran", () => {
-  const p = parseQuery("پژو ۲۰۶ کم‌کارکرد تهران");
-  expect(p).toMatchObject({ models: ["206"], city: "تهران", maxKm: 90, maxPrice: null, gear: null });
+test("queryToParams keeps valid values and drops junk", () => {
+  const query = new URLSearchParams("q=۲۰۶&category=light&models=پژو 206&models=دنا&cities=تهران&year=1398&price_max=900000000&km_max=abc&gearbox=auto&only_below=true&sort=price&page=3");
+  expect(queryToParams(query)).toEqual({
+    q: "۲۰۶", category: "light", models: ["پژو 206", "دنا"], cities: ["تهران"], year: 1398, price_max: 900000000, only_below: true, sort: "price",
+  });
+  expect(queryToParams(new URLSearchParams("category=spaceship&sort=random&year=-5"))).toEqual({});
 });
-test("home example: Dena automatic under one billion (words)", () => {
-  const p = parseQuery("دنا پلاس اتومات زیر یک میلیارد");
-  expect(p).toMatchObject({ models: ["dena"], maxPrice: 1000, gear: "اتوماتیک" });
+
+test("paramsToQuery round-trips and omits defaults", () => {
+  const params = { q: "دنا", cities: ["کرج"], price_max: 1_000_000_000, sort: "relevance" as const, only_below: false };
+  const query = paramsToQuery(params);
+  expect(query).not.toContain("sort=");
+  expect(query).not.toContain("only_below");
+  expect(queryToParams(new URLSearchParams(query))).toEqual({ q: "دنا", cities: ["کرج"], price_max: 1_000_000_000 });
+  expect(paramsToQuery({})).toBe("");
 });
-test("home example: Tara cheaper than market", () => {
-  expect(parseQuery("تارا ارزان‌تر از بازار")).toMatchObject({ models: ["tara"], onlyBelow: true, maxPrice: null });
-});
-test("home example: JAC under 900 million", () => {
-  expect(parseQuery("جک J4 زیر ۹۰۰ میلیون")).toMatchObject({ models: ["j4"], maxPrice: 900 });
-});
-test("placeholder query: price is not mistaken for mileage", () => {
-  expect(parseQuery("پژو ۲۰۶ کم‌کارکرد زیر ۷۰۰ میلیون، تهران")).toMatchObject({ maxPrice: 700, maxKm: 90 });
-});
-test("decimal billions, explicit km, year, arabic letters", () => {
-  expect(parseQuery("زیر 1.2 میلیارد").maxPrice).toBe(1200);
-  expect(parseQuery("دنا کارکرد زیر ۵۰ هزار کیلومتر").maxKm).toBe(50);
-  expect(parseQuery("تارا مدل ۱۴۰۲ دنده").year).toBe(1402);
-  expect(parseQuery("تارا مدل ۱۴۰۲ دنده").gear).toBe("دنده‌ای");
-  expect(parseQuery("كرج").city).toBe("کرج");
-});
-test("chips and filters derive from the parsed query", () => {
-  const p = parseQuery("دنا پلاس اتومات زیر یک میلیارد کرج");
-  expect(chipsOf(p)).toEqual(["دنا پلاس", "زیر ۱,۰۰۰ میلیون", "کرج", "اتوماتیک"]);
-  expect(filtersFromQuery(p)).toEqual({ ...DEFAULT_FILTERS, models: ["dena"], cities: ["کرج"], maxPrice: 1000, gear: "اتوماتیک" });
-});
-test("each filter narrows results", () => {
-  expect(filterListings(LISTINGS, DEFAULT_FILTERS)).toHaveLength(LISTINGS.length);
-  expect(filterListings(LISTINGS, { ...DEFAULT_FILTERS, models: ["tara"] }).every((l) => l.modelId === "tara")).toBe(true);
-  expect(filterListings(LISTINGS, { ...DEFAULT_FILTERS, cities: ["کرج"] }).every((l) => l.city === "کرج")).toBe(true);
-  expect(filterListings(LISTINGS, { ...DEFAULT_FILTERS, maxPrice: 700 }).every((l) => l.price <= 700)).toBe(true);
-  expect(filterListings(LISTINGS, { ...DEFAULT_FILTERS, maxKm: 50 }).every((l) => l.km <= 50000)).toBe(true);
-  expect(filterListings(LISTINGS, { ...DEFAULT_FILTERS, gear: "اتوماتیک" }).every((l) => l.gear === "اتوماتیک")).toBe(true);
-  expect(filterListings(LISTINGS, { ...DEFAULT_FILTERS, onlyBelow: true }).every((l) => l.diffPct <= -5)).toBe(true);
-  expect(filterListings(LISTINGS, { ...DEFAULT_FILTERS, year: 1401 }).every((l) => l.year === 1401)).toBe(true);
-});
-test("sorting does not mutate and orders correctly", () => {
-  const copy = [...LISTINGS];
-  const byPrice = sortListings(LISTINGS, "price");
-  expect(LISTINGS).toEqual(copy);
-  expect(byPrice[0].price).toBe(Math.min(...LISTINGS.map((l) => l.price)));
-  expect(sortListings(LISTINGS, "km")[0].km).toBe(Math.min(...LISTINGS.map((l) => l.km)));
-  expect(sortListings(LISTINGS, "score")[0].score).toBe(Math.max(...LISTINGS.map((l) => l.score)));
-  expect(sortListings(LISTINGS, "new")[0].postedIdx).toBe(Math.min(...LISTINGS.map((l) => l.postedIdx)));
-});
-test("regression: a mileage-only clause is never mistaken for a price", () => {
-  const p = parseQuery("دنا کارکرد زیر ۵۰ هزار کیلومتر");
-  expect(p.maxPrice).toBeNull();
-  expect(p.maxKm).toBe(50);
-  expect(filterListings(LISTINGS, filtersFromQuery(p)).length).toBeGreaterThan(0);
-});
-test("regression: an explicit میلیون unit is never upgraded to billions by magnitude", () => {
-  expect(parseQuery("زیر ۴ میلیون").maxPrice).toBe(4);
-});
-test("regression: price parser skips a mileage clause to find a genuine price clause", () => {
-  const p = parseQuery("زیر ۷۰۰ میلیون کارکرد زیر ۵۰ هزار کیلومتر");
-  expect(p.maxPrice).toBe(700);
-  expect(p.maxKm).toBe(50);
-});
-test("activeFilterCount counts non-default filters", () => {
-  expect(activeFilterCount(DEFAULT_FILTERS)).toBe(0);
-  expect(activeFilterCount({ ...DEFAULT_FILTERS, models: ["206", "tara"], maxKm: 100, onlyBelow: true })).toBe(4);
-});
-test("alertMatches includes a listing priced exactly at the threshold", () => {
-  const threshold = LISTINGS[0].price;
-  expect(alertMatches(LISTINGS, threshold)).toBe(LISTINGS.filter((l) => l.price <= threshold).length);
-  expect(alertMatches([{ ...LISTINGS[0], price: 500 }], 500)).toBe(1);
-  expect(alertMatches([{ ...LISTINGS[0], price: 501 }], 500)).toBe(0);
+
+test("activeFilterCount counts every set filter", () => {
+  expect(activeFilterCount({})).toBe(0);
+  expect(activeFilterCount({ q: "x", models: ["a", "b"], km_max: 100000, only_below: true, category: "light" })).toBe(5);
 });
