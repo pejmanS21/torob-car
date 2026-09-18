@@ -14,6 +14,7 @@ from models.city import City
 from models.listing import Listing
 from models.vehicle_catalog import VehicleCatalog
 from ranking.estimator import Estimate, EstimatorInput
+from ranking.model_stats import ModelRow
 from ranking.types import Candidate
 from ranking.weights import CHEAP_DIFF_PCT
 
@@ -100,6 +101,30 @@ class ListingRepository:
             await self._session.execute(
                 update(Listing), rows[start : start + UPSERT_BATCH_SIZE]
             )
+
+    async def load_model_rows(self, model: str) -> list[ModelRow]:
+        trusted_price = case((Listing.price_suspect, null()), else_=Listing.price)
+        found = await self._session.execute(
+            select(
+                Listing.id,
+                VehicleCatalog.trim,
+                Listing.year,
+                trusted_price,
+                Listing.deal_score,
+            )
+            .join(VehicleCatalog, Listing.catalog_id == VehicleCatalog.id)
+            .where(VehicleCatalog.model == model)
+        )
+        return [
+            ModelRow(
+                listing_id=listing_id,
+                trim=trim,
+                year=year,
+                price=price,
+                deal_score=deal_score,
+            )
+            for listing_id, trim, year, price, deal_score in found
+        ]
 
     async def newest_fetched_at(self) -> datetime | None:
         return await self._session.scalar(select(func.max(Listing.fetched_at)))

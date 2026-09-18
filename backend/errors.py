@@ -34,6 +34,14 @@ class ListingNotFoundError(AppError):
         super().__init__("Listing not found", {"listing_id": str(listing_id)})
 
 
+class ModelNotFoundError(AppError):
+    status_code = 404
+    code = "model_not_found"
+
+    def __init__(self, model: str) -> None:
+        super().__init__("Model not found", {"model": model})
+
+
 class InvalidSearchError(AppError):
     status_code = 422
     code = "invalid_search"

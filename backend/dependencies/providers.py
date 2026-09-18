@@ -22,6 +22,7 @@ from schemas.search import SearchIntent
 from services.facet_service import FacetService
 from services.intent_resolver import IntentResolver
 from services.listing_service import ListingService
+from services.model_stats_service import ModelStatsService
 from services.query_parser import QueryParser
 from services.search_service import SearchService
 
@@ -90,6 +91,10 @@ def get_facet_service(
         cache,
         settings.search_cache_ttl_seconds,
     )
+
+
+def get_model_stats_service(session: SessionDep) -> ModelStatsService:
+    return ModelStatsService(CatalogRepository(session), ListingRepository(session))
 
 
 def get_health_repository(session: SessionDep) -> HealthRepository:

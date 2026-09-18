@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import Collection
 from dataclasses import dataclass
+from typing import Any
 
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -28,6 +29,13 @@ class CatalogMatch:
     model: str
     trim: str
     score: float
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogModel:
+    brand: str
+    model: str
+    category: Category
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,12 +90,17 @@ class CatalogRepository:
             .values(listing_count=per_entry.c.listing_count)
         )
 
+    @staticmethod
+    def _trim_similarity(query: str) -> Any:
+        """`word_similarity` (not `similarity`) because «206» is a substring of
+        «پژو 206 تیپ 2»."""
+        return func.word_similarity(query, VehicleCatalog.trim_normalized)
+
     async def search(
         self, query: str, category: Category | None, min_similarity: float, limit: int
     ) -> list[CatalogMatch]:
-        """Best catalog rows for a normalised free-text mention. `word_similarity`
-        (not `similarity`) because «206» is a substring of «پژو 206 تیپ 2»."""
-        score = func.word_similarity(query, VehicleCatalog.trim_normalized)
+        """Best catalog rows for a normalised free-text mention."""
+        score = self._trim_similarity(query)
         statement = (
             select(
                 VehicleCatalog.brand,
@@ -103,6 +116,19 @@ class CatalogRepository:
             statement = statement.where(VehicleCatalog.category == category)
         found = await self._session.execute(statement)
         return [CatalogMatch(*row) for row in found]
+
+    async def find_model(self, model: str) -> CatalogModel | None:
+        statement = (
+            select(VehicleCatalog.brand, VehicleCatalog.model, VehicleCatalog.category)
+            .where(VehicleCatalog.model == model)
+            .order_by(VehicleCatalog.listing_count.desc())
+            .limit(1)
+        )
+        row = (await self._session.execute(statement)).first()
+        if row is None:
+            return None
+        brand, name, category = row
+        return CatalogModel(brand=brand, model=name, category=category)
 
     async def count_models(self, category: Category | None) -> int:
         distinct = select(VehicleCatalog.model).distinct()
