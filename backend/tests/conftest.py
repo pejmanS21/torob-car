@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from core.config import get_settings
+from db.session import get_session
+from dependencies.providers import get_cache, get_intent_agent
 from ingest.pipeline import IngestPipeline
 from main import create_app
 from repositories.catalog_repository import CatalogRepository
@@ -27,7 +29,7 @@ FIXTURE_CSV = BACKEND_ROOT / "tests" / "fixtures" / "listings_sample.csv"
 @pytest.fixture(scope="session")
 def migrated_database_url() -> str:
     """Runs the real Alembic migrations once against the throwaway test database
-    (start it with `./.scripts/test-db.sh`)."""
+    (start it with `docker compose -f .docker/compose.test.yml up -d`)."""
     url = get_settings().test_database_url
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(BACKEND_ROOT / "db" / "migrations"))
@@ -53,18 +55,6 @@ async def session(migrated_database_url: str) -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-def app() -> FastAPI:
-    return create_app()
-
-
-@pytest.fixture
-async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
-    transport = ASGITransport(app=app, raise_app_exceptions=False)
-    async with AsyncClient(transport=transport, base_url="http://test") as http:
-        yield http
-
-
-@pytest.fixture
 def cache() -> DictCache:
     return DictCache()
 
@@ -80,3 +70,33 @@ async def seeded_session(session: AsyncSession, cache: DictCache) -> AsyncSessio
     )
     await pipeline.run(FIXTURE_CSV)
     return session
+
+
+@pytest.fixture
+def app() -> FastAPI:
+    return create_app()
+
+
+@pytest.fixture
+async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as http:
+        yield http
+
+
+@pytest.fixture
+async def api(
+    app: FastAPI, seeded_session: AsyncSession, cache: DictCache
+) -> AsyncIterator[AsyncClient]:
+    """HTTP client wired to the seeded test database, an in-memory cache and no LLM
+    (so every query goes through the rules parser)."""
+
+    async def use_seeded_session() -> AsyncIterator[AsyncSession]:
+        yield seeded_session
+
+    app.dependency_overrides[get_session] = use_seeded_session
+    app.dependency_overrides[get_cache] = lambda: cache
+    app.dependency_overrides[get_intent_agent] = lambda: None
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as http:
+        yield http
