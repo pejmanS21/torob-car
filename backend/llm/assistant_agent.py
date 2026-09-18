@@ -10,7 +10,7 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.models import Model
 
 from repositories.listing_repository import ListingRepository
-from schemas.assistant import AssistantMessage
+from schemas.assistant import MAX_COMPARE_IDS, AssistantMessage
 from schemas.listing import ListingCard
 from schemas.search import SearchIntent
 from services.listing_views import to_card
@@ -104,7 +104,7 @@ def build_assistant_agent(model: Model) -> Agent[AssistantDeps, AssistantReply]:
         context: RunContext[AssistantDeps], listing_ids: list[uuid.UUID]
     ) -> list[dict[str, Any]]:
         """The listings the user is comparing, with their price verdicts."""
-        found = await context.deps.listings.get_by_ids(listing_ids)
+        found = await context.deps.listings.get_by_ids(listing_ids[:MAX_COMPARE_IDS])
         return [_brief(to_card(listing)) for listing in found]
 
     return agent

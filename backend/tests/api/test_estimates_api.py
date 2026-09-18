@@ -4,7 +4,6 @@ import pytest
 from httpx import AsyncClient
 
 pytestmark = pytest.mark.db
-MILLION = 1_000_000
 
 
 async def _a_priced_206(api: AsyncClient) -> dict:

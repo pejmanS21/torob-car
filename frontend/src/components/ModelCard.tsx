@@ -7,6 +7,9 @@ interface Props { stats: ModelStats; axisMin: number; axisMax: number; }
 
 /** Price range bar on an axis shared by every model card shown (lowest min → highest max). */
 export function ModelCard({ stats, axisMin, axisMax }: Props) {
+  // No range to plot: this model's own min/max, or the whole shared axis
+  // (every card's min/max null), is missing — skip the bar instead of NaN%.
+  const hasRange = stats.price_min !== null && stats.price_max !== null && Number.isFinite(axisMin) && Number.isFinite(axisMax);
   const span = Math.max(1, axisMax - axisMin);
   const min = stats.price_min ?? axisMin;
   const max = stats.price_max ?? min;
@@ -21,9 +24,11 @@ export function ModelCard({ stats, axisMin, axisMax }: Props) {
       <div className={styles.range}>
         {stats.price_min === null || stats.price_max === null ? "بدون قیمت" : <>از <b className={styles.bold}>{formatToman(stats.price_min)}</b> تا <b className={styles.bold}>{formatToman(stats.price_max)}</b></>}
       </div>
-      <div className={styles.bar}>
-        <div className={styles.barFill} style={{ right: `${start}%`, width: `${width}%` }} />
-      </div>
+      {hasRange && (
+        <div className={styles.bar}>
+          <div className={styles.barFill} style={{ right: `${start}%`, width: `${width}%` }} />
+        </div>
+      )}
       <div className={styles.cta}>مشاهده صفحهٔ مدل ←</div>
     </Link>
   );

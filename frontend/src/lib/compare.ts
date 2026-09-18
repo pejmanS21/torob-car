@@ -19,11 +19,11 @@ function indexOfBest(values: (number | null)[], better: Better): number {
 
 function numericRow(
   label: string, cards: ListingCard[], get: (l: ListingCard) => number | null, text: (l: ListingCard) => string, better: Better,
-  color: (v: number | null) => string = () => INK,
+  color: (l: ListingCard) => string = () => INK,
 ): CompareRow {
   const values = cards.map(get);
   const best = cards.length > 1 ? indexOfBest(values, better) : -1;
-  return { label, cells: cards.map((l, i) => ({ text: text(l), color: color(values[i]), best: i === best })) };
+  return { label, cells: cards.map((l, i) => ({ text: text(l), color: color(l), best: i === best })) };
 }
 
 const textRow = (label: string, cards: ListingCard[], text: (l: ListingCard) => string): CompareRow =>
@@ -33,8 +33,8 @@ export function compareRows(cards: ListingCard[]): CompareRow[] {
   if (!cards.length) return [];
   return [
     numericRow("قیمت", cards, (l) => l.price, (l) => (l.price === null ? "توافقی" : formatToman(l.price)), lower),
-    numericRow("نسبت به بازار", cards, (l) => l.diff_pct, (l) => diffText(l.diff_pct), lower, (v) => verdictStyle(v === null ? "unknown" : v <= -5 ? "cheap" : v >= 6 ? "expensive" : "fair").color),
-    numericRow("ارزش خرید", cards, (l) => l.deal_score, (l) => (l.deal_score === null ? DASH : `${fa(l.deal_score)}/۱۰۰`), higher, (v) => (v === null ? INK : scoreColor(v))),
+    numericRow("نسبت به بازار", cards, (l) => l.diff_pct, (l) => diffText(l.diff_pct), lower, (l) => verdictStyle(l.verdict).color),
+    numericRow("ارزش خرید", cards, (l) => l.deal_score, (l) => (l.deal_score === null ? DASH : `${fa(l.deal_score)}/۱۰۰`), higher, (l) => (l.deal_score === null ? INK : scoreColor(l.deal_score))),
     numericRow("سال ساخت", cards, (l) => l.year, (l) => (l.year === null ? DASH : fa(l.year)), higher),
     numericRow("کارکرد", cards, (l) => l.km, (l) => (l.km === null ? DASH : `${num(l.km)} کیلومتر`), lower),
     textRow("گیربکس", cards, (l) => (l.gearbox ? GEARBOX_NAMES[l.gearbox] : DASH)),

@@ -30,10 +30,15 @@ const medianPrice = (items: ListingCardData[]): number => {
   return prices.length ? prices[Math.floor(prices.length / 2)] : 0;
 };
 
-export function ResultsScreen({ params }: { params: SearchParams }) {
+interface Props {
+  params: SearchParams;
+  sheetOpen: boolean;
+  onSheetOpenChange: (open: boolean) => void;
+}
+
+export function ResultsScreen({ params, sheetOpen, onSheetOpenChange }: Props) {
   const router = useRouter();
   const { addAlert } = useAppState();
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [more, setMore] = useState<ListingCardData[]>([]);
   const [moreError, setMoreError] = useState<ApiError | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -72,6 +77,14 @@ export function ResultsScreen({ params }: { params: SearchParams }) {
     }
   }
 
+  function retrySearch() {
+    // Page 1 is about to be re-fetched; drop any already-loaded page 2+ so it
+    // can't be duplicated once loadMore recomputes its page from items.length.
+    setMore([]);
+    setMoreError(null);
+    search.retry();
+  }
+
   function saveSearch() {
     const chips = search.data?.intent.chips ?? [];
     const threshold = params.price_max ?? Math.round(medianPrice(exact) / ALERT_ROUNDING) * ALERT_ROUNDING;
@@ -86,13 +99,13 @@ export function ResultsScreen({ params }: { params: SearchParams }) {
 
   return (
     <section className={styles.layout}>
-      <FiltersPanel params={params} facets={facets.data} onChange={navigate} onReset={() => navigate(params.q ? { q: params.q } : {})} open={sheetOpen} onClose={() => setSheetOpen(false)} resultCount={search.data ? total : null} />
+      <FiltersPanel params={params} facets={facets.data} onChange={navigate} onReset={() => navigate(params.q ? { q: params.q } : {})} open={sheetOpen} onClose={() => onSheetOpenChange(false)} resultCount={search.data ? total : null} />
       <div className={styles.main}>
         {search.data && search.data.intent.chips.length > 0 && (
           <ParsedChips chips={search.data.intent.chips} hint={search.data.parsed_by === "rules" ? RULES_HINT : undefined} />
         )}
-        <ResultsToolbar countFa={search.data ? fa(total) : "…"} subtitle={search.data ? `${fa(cheaperCount)} آگهی ارزان‌تر از بازار` : ""} filtersLabel={activeCount ? `فیلترها (${fa(activeCount)})` : "فیلترها"} onOpenFilters={() => setSheetOpen(true)} sort={params.sort ?? "relevance"} onSort={(sort: SortKey) => navigate({ ...params, sort })} onSave={saveSearch} />
-        {search.error && <ErrorBanner error={search.error} onRetry={search.retry} />}
+        <ResultsToolbar countFa={search.data ? fa(total) : "…"} subtitle={search.data ? `${fa(cheaperCount)} آگهی ارزان‌تر از بازار` : ""} filtersLabel={activeCount ? `فیلترها (${fa(activeCount)})` : "فیلترها"} onOpenFilters={() => onSheetOpenChange(true)} sort={params.sort ?? "relevance"} onSort={(sort: SortKey) => navigate({ ...params, sort })} onSave={saveSearch} />
+        {search.error && <ErrorBanner error={search.error} onRetry={retrySearch} />}
         {search.loading && <div className={styles.grid}><CardSkeletons count={6} /></div>}
         {stats.data && stats.data.length > 0 && (
           <div className={styles.modelCards}>{stats.data.map((s) => <ModelCard key={s.model} stats={s} axisMin={axisMin} axisMax={axisMax} />)}</div>

@@ -79,8 +79,12 @@ def _price_breakdown(listing: Listing) -> PriceBreakdown:
 
 
 def to_detail(listing: Listing) -> ListingDetail:
+    # Cards fall back to the city centroid so every listing has a map pin; the
+    # detail page's own map must reflect the listing's real location (or hide
+    # itself when there isn't one), so the fallback is overridden here.
+    fields = _card_fields(listing) | {"lat": listing.lat, "lng": listing.lng}
     return ListingDetail(
-        **_card_fields(listing),
+        **fields,
         url=listing.url,
         description=mask_phone_numbers(listing.description),
         image_urls=listing.image_urls,

@@ -13,12 +13,12 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   let detail: ListingDetail;
   try {
-    detail = await apiGet<ListingDetail>(`/listings/${id}`);
+    detail = await apiGet<ListingDetail>(`/listings/${encodeURIComponent(id)}`);
   } catch (error) {
     if (error instanceof ApiError && NOT_FOUND_STATUSES.includes(error.status)) notFound();
     throw error; // → app/error.tsx
   }
-  const similar = await apiGet<ListingCard[]>(`/listings/${id}/similar`, { limit: SIMILAR_LIMIT }).catch(
+  const similar = await apiGet<ListingCard[]>(`/listings/${encodeURIComponent(id)}/similar`, { limit: SIMILAR_LIMIT }).catch(
     (error) => {
       if (error instanceof ApiError) return [] as ListingCard[];
       throw error;
