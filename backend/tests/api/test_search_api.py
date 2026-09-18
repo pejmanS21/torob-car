@@ -87,6 +87,12 @@ async def test_overlong_query_is_rejected(api: AsyncClient) -> None:
     assert response.status_code == 422
 
 
+async def test_out_of_range_year_filter_is_a_clean_422(api: AsyncClient) -> None:
+    response = await api.get("/api/v1/search", params={"year": 1200})
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_search"
+
+
 async def test_detail_similar_batch_and_facets(api: AsyncClient) -> None:
     listing = (await search(api, q="۲۰۶ تیپ ۲ تهران"))["items"][0]
     detail = (await api.get(f"/api/v1/listings/{listing['id']}")).json()

@@ -51,7 +51,8 @@ class Cache:
     async def ping(self) -> bool:
         try:
             return bool(await self._client.ping())
-        except RedisError:
+        except RedisError as error:
+            logger.warning("cache ping failed", extra={"fields": {"error": str(error)}})
             return False
 
     async def close(self) -> None:

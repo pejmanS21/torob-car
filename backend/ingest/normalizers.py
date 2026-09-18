@@ -4,11 +4,10 @@ import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from core.text import normalize_persian, to_ascii_digits
+from core.text import MIN_JALALI_YEAR, normalize_persian, to_ascii_digits
 
 MIN_PLAUSIBLE_PRICE_TOMAN = 10_000_000
 MAX_PLAUSIBLE_KM = 1_000_000
-MIN_JALALI_YEAR = 1300
 MAX_JALALI_YEAR = 1420
 GREGORIAN_TO_JALALI_OFFSET = 621
 MAX_INSURANCE_MONTHS = 12

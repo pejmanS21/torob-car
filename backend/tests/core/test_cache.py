@@ -54,6 +54,14 @@ async def test_an_outage_reads_as_a_miss_and_never_raises() -> None:
     assert await cache.ping() is False
 
 
+async def test_ping_during_an_outage_logs_a_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level("WARNING", logger="core.cache"):
+        assert await Cache(FakeRedis(down=True)).ping() is False
+    assert any("cache ping failed" in record.getMessage() for record in caplog.records)
+
+
 async def test_bumping_the_version_during_an_outage_fails_loudly() -> None:
     with pytest.raises(RedisConnectionError):
         await Cache(FakeRedis(down=True)).bump_data_version()

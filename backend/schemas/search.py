@@ -1,13 +1,13 @@
 from datetime import date
 from typing import Self
 
-from pydantic import BaseModel, Field, PositiveInt, model_validator
+from pydantic import BaseModel, Field, PositiveInt, ValidationError, model_validator
 
-from core.text import jalali_year
+from core.text import MIN_JALALI_YEAR, jalali_year
 from enums import Category, Fuel, Gearbox, ParsedBy, SortKey
+from errors import invalid_search_error
 from schemas.listing import ListingCard
 
-MIN_SEARCH_YEAR = 1340
 MAX_QUERY_LENGTH = 300
 MAX_PAGE_SIZE = 50
 DEFAULT_PAGE_SIZE = 20
@@ -44,7 +44,7 @@ class SearchIntent(BaseModel):
     def _check_ranges(self) -> Self:
         newest_year = jalali_year(date.today()) + 1
         for year in (self.year_min, self.year_max):
-            if year is not None and not MIN_SEARCH_YEAR <= year <= newest_year:
+            if year is not None and not MIN_JALALI_YEAR <= year <= newest_year:
                 raise ValueError(f"year must be a Jalali year up to {newest_year}")
         if self.year_min and self.year_max and self.year_min > self.year_max:
             raise ValueError("year_min must not exceed year_max")
@@ -82,7 +82,10 @@ class SearchOverrides(BaseModel):
         if self.models:
             changes["vehicles"] = [VehicleMention(model=name) for name in self.models]
         stated = {name: value for name, value in changes.items() if value is not None}
-        return SearchIntent.model_validate({**intent.model_dump(), **stated})
+        try:
+            return SearchIntent.model_validate({**intent.model_dump(), **stated})
+        except ValidationError as error:
+            raise invalid_search_error("Invalid search filters", error) from error
 
 
 class SearchParams(SearchOverrides):

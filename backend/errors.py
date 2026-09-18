@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -45,6 +46,15 @@ class ServiceUnavailableError(AppError):
 
 class IngestError(AppError):
     code = "ingest_failed"
+
+
+def invalid_search_error(message: str, error: ValidationError) -> InvalidSearchError:
+    """A pydantic ValidationError raised while building a SearchIntent from
+    user-supplied input (query params, free-text query) is a 422, not a 500.
+    Only call this at an actual user-input boundary — not for a corrupted cache
+    payload, which must stay a 500."""
+    details = error.errors(include_url=False, include_context=False)
+    return InvalidSearchError(message, {"errors": details})
 
 
 def _envelope(status_code: int, code: str, message: str, details: Any) -> JSONResponse:

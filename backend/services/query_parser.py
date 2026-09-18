@@ -6,12 +6,14 @@ import logging
 from dataclasses import dataclass
 
 import httpx
+from pydantic import ValidationError
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import AgentRunError, ModelAPIError
 
 from core.cache import Cache
 from core.text import normalize_persian
 from enums import ParsedBy
+from errors import invalid_search_error
 from llm.rules_parser import parse_with_rules
 from repositories.city_repository import CityRepository
 from schemas.search import SearchIntent
@@ -59,7 +61,11 @@ class QueryParser:
         if intent is None:
             # Fallback results are not cached, so the next request retries the LLM.
             known_cities = await self._cities.list_names()
-            return ParsedQuery(parse_with_rules(query, known_cities), ParsedBy.RULES)
+            try:
+                rules_intent = parse_with_rules(query, known_cities)
+            except ValidationError as error:
+                raise invalid_search_error("Invalid search filters", error) from error
+            return ParsedQuery(rules_intent, ParsedBy.RULES)
         payload = intent.model_dump(mode="json")
         await self._cache.set_json(_cache_key(query), payload, self._cache_ttl_seconds)
         return ParsedQuery(intent, ParsedBy.LLM)

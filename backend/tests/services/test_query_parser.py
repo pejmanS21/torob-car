@@ -6,6 +6,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 
 from enums import ParsedBy
+from errors import InvalidSearchError
 from llm.intent_agent import build_instructions, build_intent_agent
 from schemas.search import SearchIntent
 from services.query_parser import QueryParser
@@ -45,6 +46,11 @@ async def test_without_an_agent_the_rules_parser_answers() -> None:
     parsed = await make_parser(None, DictCache()).parse("۲۰۶ زیر ۸۰۰ میلیون کرج")
     assert parsed.parsed_by is ParsedBy.RULES
     assert parsed.intent.cities == ["کرج"]
+
+
+async def test_rules_parser_rejects_an_impossible_year_as_invalid_search() -> None:
+    with pytest.raises(InvalidSearchError):
+        await make_parser(None, DictCache()).parse("مدل 1450")
 
 
 async def test_invalid_llm_output_falls_back_to_rules_and_is_not_cached() -> None:

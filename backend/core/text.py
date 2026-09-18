@@ -10,6 +10,12 @@ _NOWRUZ = (3, 21)
 _JALALI_OFFSET_AFTER_NOWRUZ = 621
 _JALALI_OFFSET_BEFORE_NOWRUZ = 622
 
+# The single source of truth for the oldest Jalali year the system will accept.
+# Ingest uses it to bound what a listing's year can be; search uses it to bound
+# what a filter's year can be — they must agree, or an ingestable listing could
+# become unsearchable (see ingest/normalizers.py and schemas/search.py).
+MIN_JALALI_YEAR = 1300
+
 _TO_ASCII_DIGITS = str.maketrans(
     _PERSIAN_DIGITS + _ARABIC_DIGITS, _ASCII_DIGITS + _ASCII_DIGITS
 )
