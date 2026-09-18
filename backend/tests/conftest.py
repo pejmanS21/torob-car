@@ -12,7 +12,7 @@ from sqlalchemy.pool import NullPool
 
 from core.config import get_settings
 from db.session import get_session
-from dependencies.providers import get_cache, get_intent_agent
+from dependencies.providers import get_assistant_agent, get_cache, get_intent_agent
 from ingest.pipeline import IngestPipeline
 from main import create_app
 from repositories.catalog_repository import CatalogRepository
@@ -97,6 +97,7 @@ async def api(
     app.dependency_overrides[get_session] = use_seeded_session
     app.dependency_overrides[get_cache] = lambda: cache
     app.dependency_overrides[get_intent_agent] = lambda: None
+    app.dependency_overrides[get_assistant_agent] = lambda: None
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as http:
         yield http

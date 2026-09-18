@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.cache import Cache
 from core.config import Settings, get_settings
 from db.session import get_session
+from llm.assistant_agent import AssistantDeps, AssistantReply, build_assistant_agent
 from llm.intent_agent import build_intent_agent
 from llm.model_factory import build_model
 from ranking.ranker import ListingRanker
@@ -19,6 +20,7 @@ from repositories.city_repository import CityRepository
 from repositories.health_repository import HealthRepository
 from repositories.listing_repository import ListingRepository
 from schemas.search import SearchIntent
+from services.assistant_service import AssistantService
 from services.catalog_service import CatalogService
 from services.estimate_service import EstimateService
 from services.facet_service import FacetService
@@ -42,6 +44,12 @@ def get_cache() -> Cache:
 def get_intent_agent() -> Agent[None, SearchIntent] | None:
     model = build_model(get_settings())
     return build_intent_agent(model) if model is not None else None
+
+
+@lru_cache
+def get_assistant_agent() -> Agent[AssistantDeps, AssistantReply] | None:
+    model = build_model(get_settings())
+    return build_assistant_agent(model) if model is not None else None
 
 
 CacheDep = Annotated[Cache, Depends(get_cache)]
@@ -92,6 +100,21 @@ def get_facet_service(
         CatalogRepository(session),
         cache,
         settings.search_cache_ttl_seconds,
+    )
+
+
+def get_assistant_service(
+    session: SessionDep,
+    settings: SettingsDep,
+    parser: Annotated[QueryParser, Depends(get_query_parser)],
+    search: Annotated[SearchService, Depends(get_search_service)],
+) -> AssistantService:
+    return AssistantService(
+        get_assistant_agent(),
+        parser,
+        search,
+        ListingRepository(session),
+        settings.assistant_timeout_seconds,
     )
 
 

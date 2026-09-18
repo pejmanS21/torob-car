@@ -66,6 +66,11 @@ class LlmProvider(StrEnum):
     OPENAI_COMPATIBLE = "openai_compatible"
 
 
+class ChatRole(StrEnum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
 class ParsedBy(StrEnum):
     LLM = "llm"
     RULES = "rules"

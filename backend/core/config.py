@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     llm_api_key: SecretStr = SecretStr("")
     llm_base_url: str | None = None
     llm_timeout_seconds: float = 4.0
+    assistant_timeout_seconds: float = 20.0  # tool calls need two round trips
 
 
 @lru_cache
