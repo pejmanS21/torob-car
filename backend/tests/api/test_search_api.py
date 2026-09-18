@@ -127,3 +127,23 @@ async def test_second_identical_search_is_served_from_the_cache(
     body = await search(api, q="۲۰۶ تهران", page=2)
     assert set(cache.values) == keys_after_first  # nothing new was computed
     assert body["page"] == 2
+
+
+async def test_cards_carry_map_and_spec_fields(api: AsyncClient) -> None:
+    item = (await search(api, q="۲۰۶ تیپ ۲ تهران"))["items"][0]
+    assert {"lat", "lng", "gearbox", "fuel", "body_condition"} <= set(item)
+    assert "insurance_months" in item
+    assert item["lat"] is not None and item["gearbox"] == "manual"
+
+
+async def test_facets_are_scoped_by_category_and_dated(api: AsyncClient) -> None:
+    everything = (await api.get("/api/v1/facets")).json()
+    scoped = await api.get("/api/v1/facets", params={"category": "motorcycle"})
+    motorcycles = scoped.json()
+    assert everything["data_as_of"] and motorcycles["data_as_of"]
+    assert everything["model_count"] > motorcycles["model_count"] > 0
+    assert set(motorcycles["categories"]) == {"motorcycle"}
+    assert len(everything["categories"]) == 5
+    assert motorcycles["cities"][0]["count"] <= everything["cities"][0]["count"]
+    assert all(m["count"] <= 120 for m in motorcycles["models"])
+    assert sum(c["count"] for c in motorcycles["cities"]) == 120

@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from enums import Category, EstimateBasis, Fuel, Gearbox, Verdict
+from enums import BodyCondition, Category, EstimateBasis, Fuel, Gearbox, Verdict
 
 
 class ListingCard(BaseModel):
@@ -20,6 +20,12 @@ class ListingCard(BaseModel):
     price: int | None
     city: str
     district: str | None
+    lat: float | None
+    lng: float | None
+    gearbox: Gearbox | None
+    fuel: Fuel | None
+    body_condition: BodyCondition | None
+    insurance_months: int | None
     thumbnail_url: str | None
     posted_at: datetime | None
     est_price: int | None
@@ -43,12 +49,7 @@ class ListingDetail(ListingCard):
     url: str
     description: str
     image_urls: list[str]
-    lat: float | None
-    lng: float | None
-    gearbox: Gearbox | None
-    fuel: Fuel | None
     color: str | None
-    insurance_months: int | None
     is_dealer: bool
     attributes: dict[str, Any]
     price_breakdown: PriceBreakdown

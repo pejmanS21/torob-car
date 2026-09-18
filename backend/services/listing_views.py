@@ -1,5 +1,6 @@
 """ORM Listing → API schemas. ORM objects never leave the service layer untranslated."""
 
+from core.phone import mask_phone_numbers
 from enums import Verdict
 from models.listing import Listing
 from ranking.types import RankedListing
@@ -33,6 +34,13 @@ def _card_fields(listing: Listing) -> dict[str, object]:
         "price": listing.price,
         "city": listing.city.name,
         "district": listing.district,
+        # Map pins: a listing without coordinates sits on its city's centroid.
+        "lat": listing.lat if listing.lat is not None else listing.city.lat,
+        "lng": listing.lng if listing.lng is not None else listing.city.lng,
+        "gearbox": listing.gearbox,
+        "fuel": listing.fuel,
+        "body_condition": listing.body_condition,
+        "insurance_months": listing.insurance_months,
         "thumbnail_url": thumbnails[0] if thumbnails else None,
         "posted_at": listing.posted_at,
         "est_price": listing.est_price,
@@ -74,14 +82,9 @@ def to_detail(listing: Listing) -> ListingDetail:
     return ListingDetail(
         **_card_fields(listing),
         url=listing.url,
-        description=listing.description,
+        description=mask_phone_numbers(listing.description),
         image_urls=listing.image_urls,
-        lat=listing.lat,
-        lng=listing.lng,
-        gearbox=listing.gearbox,
-        fuel=listing.fuel,
         color=listing.color,
-        insurance_months=listing.insurance_months,
         is_dealer=listing.is_dealer,
         attributes=listing.attributes,
         price_breakdown=_price_breakdown(listing),

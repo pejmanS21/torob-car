@@ -63,9 +63,3 @@ class CityRepository:
             select(City.name).order_by(City.listing_count.desc())
         )
         return list(found)
-
-    async def list_top(self, limit: int) -> list[City]:
-        found = await self._session.scalars(
-            select(City).order_by(City.listing_count.desc(), City.name).limit(limit)
-        )
-        return list(found)

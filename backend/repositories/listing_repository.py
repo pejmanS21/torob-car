@@ -24,6 +24,12 @@ _IMMUTABLE_COLUMNS = frozenset({"id", "token"})
 
 
 @dataclass(frozen=True, slots=True)
+class CityCount:
+    name: str
+    listing_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class CandidateFilter:
     """Absolute bounds, already widened by the ranking tolerances (spec §7.3). A
     bound of None means the user did not state that criterion. NULL column values
@@ -103,11 +109,30 @@ class ListingRepository:
             await self._session.scalar(select(func.count()).select_from(Listing)) or 0
         )
 
-    async def count_by_category(self) -> dict[Category, int]:
-        found = await self._session.execute(
-            select(Listing.category, func.count()).group_by(Listing.category)
-        )
+    async def count_by_category(
+        self, category: Category | None = None
+    ) -> dict[Category, int]:
+        statement = select(Listing.category, func.count()).group_by(Listing.category)
+        if category is not None:
+            statement = statement.where(Listing.category == category)
+        found = await self._session.execute(statement)
         return {category: total for category, total in found}
+
+    async def count_by_city(
+        self, category: Category | None, limit: int
+    ) -> list[CityCount]:
+        total = func.count().label("total")
+        statement = (
+            select(City.name, total)
+            .join(Listing, Listing.city_id == City.id)
+            .group_by(City.name)
+            .order_by(total.desc(), City.name)
+            .limit(limit)
+        )
+        if category is not None:
+            statement = statement.where(Listing.category == category)
+        found = await self._session.execute(statement)
+        return [CityCount(name=name, listing_count=count) for name, count in found]
 
     async def get_by_id(self, listing_id: uuid.UUID) -> Listing | None:
         found = await self.get_by_ids([listing_id])

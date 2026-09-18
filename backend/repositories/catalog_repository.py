@@ -104,6 +104,13 @@ class CatalogRepository:
         found = await self._session.execute(statement)
         return [CatalogMatch(*row) for row in found]
 
+    async def count_models(self, category: Category | None) -> int:
+        distinct = select(VehicleCatalog.model).distinct()
+        if category is not None:
+            distinct = distinct.where(VehicleCatalog.category == category)
+        statement = select(func.count()).select_from(distinct.subquery())
+        return await self._session.scalar(statement) or 0
+
     async def list_top_models(
         self, category: Category | None, limit: int
     ) -> list[ModelCount]:

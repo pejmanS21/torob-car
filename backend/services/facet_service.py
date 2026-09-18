@@ -1,7 +1,6 @@
 from core.cache import Cache
 from enums import Category
 from repositories.catalog_repository import CatalogRepository
-from repositories.city_repository import CityRepository
 from repositories.listing_repository import ListingRepository
 from schemas.facets import FacetCount, Facets, ModelFacet
 
@@ -14,13 +13,11 @@ class FacetService:
         self,
         listings: ListingRepository,
         catalog: CatalogRepository,
-        cities: CityRepository,
         cache: Cache,
         cache_ttl_seconds: int,
     ) -> None:
         self._listings = listings
         self._catalog = catalog
-        self._cities = cities
         self._cache = cache
         self._cache_ttl_seconds = cache_ttl_seconds
 
@@ -37,9 +34,9 @@ class FacetService:
 
     async def _build(self, category: Category | None) -> Facets:
         models = await self._catalog.list_top_models(category, TOP_MODELS)
-        cities = await self._cities.list_top(TOP_CITIES)
+        cities = await self._listings.count_by_city(category, TOP_CITIES)
         return Facets(
-            categories=await self._listings.count_by_category(),
+            categories=await self._listings.count_by_category(category),
             models=[
                 ModelFacet(brand=item.brand, model=item.model, count=item.listing_count)
                 for item in models
@@ -47,4 +44,6 @@ class FacetService:
             cities=[
                 FacetCount(value=city.name, count=city.listing_count) for city in cities
             ],
+            model_count=await self._catalog.count_models(category),
+            data_as_of=await self._listings.newest_fetched_at(),
         )

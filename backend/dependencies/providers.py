@@ -87,7 +87,6 @@ def get_facet_service(
     return FacetService(
         ListingRepository(session),
         CatalogRepository(session),
-        CityRepository(session),
         cache,
         settings.search_cache_ttl_seconds,
     )
