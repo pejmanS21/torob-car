@@ -11,11 +11,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from core.config import get_settings
+from ingest.pipeline import IngestPipeline
 from main import create_app
+from repositories.catalog_repository import CatalogRepository
+from repositories.city_repository import CityRepository
+from repositories.listing_repository import ListingRepository
+from tests.support import DictCache
 
 models.ALLOW_MODEL_REQUESTS = False  # tests must never reach a real LLM
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
+FIXTURE_CSV = BACKEND_ROOT / "tests" / "fixtures" / "listings_sample.csv"
 
 
 @pytest.fixture(scope="session")
@@ -56,3 +62,21 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as http:
         yield http
+
+
+@pytest.fixture
+def cache() -> DictCache:
+    return DictCache()
+
+
+@pytest.fixture
+async def seeded_session(session: AsyncSession, cache: DictCache) -> AsyncSession:
+    """The ~600-row fixture CSV loaded through the real ingest pipeline."""
+    pipeline = IngestPipeline(
+        CityRepository(session),
+        CatalogRepository(session),
+        ListingRepository(session),
+        cache,
+    )
+    await pipeline.run(FIXTURE_CSV)
+    return session
