@@ -153,7 +153,7 @@ REDIS_URL=redis://redis:6379/0
 # LLM — Gemini in development, any OpenAI-compatible API in production.
 # Empty LLM_API_KEY falls back to the deterministic rules parser.
 LLM_PROVIDER=google
-LLM_MODEL=gemini-flash-latest
+LLM_MODEL=gemini-3.7-flash
 LLM_API_KEY=
 LLM_BASE_URL=
 # Frontend — the browser reaches the API through Traefik on the same origin,
@@ -241,7 +241,7 @@ and frontend do **not** publish host ports — `http://localhost:8000` /
 ```bash
 pre-commit install           # Install git hooks (run once after cloning)
 pre-commit run --all-files   # Run every hook against the whole repo
-gitleaks detect --source .   # Scan working tree for secrets
+docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.0 detect --source /repo --no-banner  # Scan working tree for secrets
 semgrep ci                   # Run Semgrep with the project ruleset
 ./.scripts/sonar.sh          # Coverage + local SonarQube quality gate
 ```
@@ -672,7 +672,22 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
-    labels: [] # Traefik routing labels — see §11.3
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.backend.loadbalancer.server.port=8000
+      # Explicit priorities: Traefik's default (rule length) would rank the long
+      # `api` rule above `api-search`, and the rate limit would never apply.
+      - traefik.http.routers.api-search.rule=PathPrefix(`/api/v1/search`)
+      - traefik.http.routers.api-search.priority=100
+      - traefik.http.routers.api-search.entrypoints=web
+      - traefik.http.routers.api-search.service=backend
+      - traefik.http.routers.api-search.middlewares=search-ratelimit
+      - traefik.http.middlewares.search-ratelimit.ratelimit.average=10
+      - traefik.http.middlewares.search-ratelimit.ratelimit.burst=20
+      - traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/health`)
+      - traefik.http.routers.api.priority=50
+      - traefik.http.routers.api.entrypoints=web
+      - traefik.http.routers.api.service=backend
 
   frontend:
     build: { context: .., dockerfile: .docker/frontend.Dockerfile }
@@ -680,7 +695,12 @@ services:
     env_file: ../.env
     expose: ["3000"] # internal only — no host mapping
     depends_on: [backend]
-    labels: [] # Traefik routing labels — see §11.3
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.frontend.loadbalancer.server.port=3000
+      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.priority=1
+      - traefik.http.routers.frontend.entrypoints=web
 
   db:
     image: pgvector/pgvector:pg18
