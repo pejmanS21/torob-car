@@ -13,10 +13,10 @@ export function ListingRow({ card }: { card: CardView }) {
           <VerdictBadge verdict={card.verdict} size="sm" />
         </div>
         <div className={styles.meta}>{card.meta}</div>
-        <div className={styles.meta}>{card.body} · بیمه {card.insFa} ماه</div>
+        <div className={styles.meta}>بدنه {card.body} · بیمه {card.insFa} ماه</div>
       </div>
       <div className={styles.price}>
-        <div className={styles.amount}>{card.priceFa} <span className={styles.unit}>میلیون</span></div>
+        <div className={styles.amount}>{card.priceText}</div>
         <div className={styles.diff} style={{ color: card.verdict.color }}>{card.diffText}</div>
         <div className={styles.score}>ارزش خرید <b className={styles.scoreVal}>{card.scoreFa}</b>/۱۰۰</div>
       </div>

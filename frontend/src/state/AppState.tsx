@@ -1,18 +1,19 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { scriptedReply } from "@/lib/assistant";
-import { LISTINGS } from "@/lib/listings";
+import { ApiError, apiPost } from "@/lib/api/client";
+import type { AssistantRequest, AssistantResponse } from "@/lib/api/types";
 import type { ChatMessage, PriceAlert } from "@/lib/types";
 
 export const MAX_COMPARE = 3;
 export type AvatarAnimation = "idle" | "thinking" | "happy";
 
-const STORAGE_KEY = "torobcar:v1";
+const STORAGE_KEY = "torobcar:v2"; // v1 held synthetic ids and is ignored
 const TOAST_MS = 2200;
-const REPLY_DELAY_MS = 700;
 const HAPPY_MS = 2500;
-const GREETING: ChatMessage = { role: "assistant", text: "سلام! بگو دنبال چه ماشینی هستی، یا بپرس کدوم آگهی به‌صرفه‌تره. من همهٔ آگهی‌های فعال رو می‌بینم." };
+const HISTORY_LIMIT = 10; // the backend caps history at 10 messages
+const GREETING: ChatMessage = { role: "assistant", text: "سلام! بگو دنبال چه ماشینی هستی، یا بپرس کدوم آگهی به‌صرفه‌تره. من همهٔ آگهی‌های فعال رو می‌بینم.", listings: [] };
+const CHAT_UNAVAILABLE = "الان به سرویس جست‌وجو دسترسی ندارم؛ چند لحظه بعد دوباره بپرس.";
 
 interface Persisted { compare: string[]; saved: string[]; alerts: PriceAlert[]; loggedIn: boolean; }
 const EMPTY: Persisted = { compare: [], saved: [], alerts: [], loggedIn: false };
@@ -45,6 +46,9 @@ export interface AppStateValue extends Persisted {
 
 const AppStateContext = createContext<AppStateValue | null>(null);
 
+const isAlert = (a: unknown): a is PriceAlert =>
+  typeof a === "object" && a !== null && typeof (a as PriceAlert).title === "string" && typeof (a as PriceAlert).threshold === "number" && typeof (a as PriceAlert).params === "object";
+
 function readPersisted(): Persisted {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -53,13 +57,16 @@ function readPersisted(): Persisted {
     return {
       compare: Array.isArray(parsed.compare) ? parsed.compare.slice(0, MAX_COMPARE) : EMPTY.compare,
       saved: Array.isArray(parsed.saved) ? parsed.saved : EMPTY.saved,
-      alerts: Array.isArray(parsed.alerts) ? parsed.alerts : EMPTY.alerts,
+      alerts: Array.isArray(parsed.alerts) ? parsed.alerts.filter(isAlert) : EMPTY.alerts,
       loggedIn: typeof parsed.loggedIn === "boolean" ? parsed.loggedIn : EMPTY.loggedIn,
     };
   } catch {
     return EMPTY; // storage blocked or corrupt → start clean (spec: Error handling)
   }
 }
+
+const toAssistantMessages = (messages: ChatMessage[]): AssistantRequest["messages"] =>
+  messages.slice(-HISTORY_LIMIT).map(({ role, text }) => ({ role, text }));
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [persisted, setPersisted] = useState<Persisted>(EMPTY);
@@ -72,9 +79,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const happyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const replyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const persistedRef = useRef<Persisted>(EMPTY);
+  const chatRef = useRef<ChatMessage[]>([GREETING]);
   const chatBusyRef = useRef(false);
+  const mountedRef = useRef(true);
 
   // Load after mount so server and first client render match.
   useEffect(() => {
@@ -92,10 +100,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // Clear pending timers on unmount so a fired timeout never calls setState
   // after teardown (Strict Mode mounts/unmounts/remounts in dev).
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       clearTimeout(toastTimer.current);
       clearTimeout(happyTimer.current);
-      clearTimeout(replyTimer.current);
     };
   }, []);
 
@@ -150,23 +159,32 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setBellOpen(false);
   }, [showToast]);
 
+  const appendChat = useCallback((message: ChatMessage) => {
+    chatRef.current = [...chatRef.current, message];
+    setChatMessages(chatRef.current);
+  }, []);
+
+  // Stateless assistant: every call carries the recent history and the compare ids.
   const sendChat = useCallback((raw: string) => {
     const text = raw.trim();
     if (!text || chatBusyRef.current) return;
     chatBusyRef.current = true;
-    setChatMessages((m) => [...m, { role: "user", text }]);
     setChatBusy(true);
-    const compareIds = persistedRef.current.compare;
-    clearTimeout(replyTimer.current);
-    replyTimer.current = setTimeout(() => {
-      setChatMessages((m) => [...m, { role: "assistant", ...scriptedReply(text, LISTINGS, compareIds) }]);
-      chatBusyRef.current = false;
-      setChatBusy(false);
-      setRecentReply(true);
-      clearTimeout(happyTimer.current);
-      happyTimer.current = setTimeout(() => setRecentReply(false), HAPPY_MS);
-    }, REPLY_DELAY_MS);
-  }, []);
+    appendChat({ role: "user", text, listings: [] });
+    const body: AssistantRequest = { messages: toAssistantMessages(chatRef.current), compare_ids: persistedRef.current.compare };
+    apiPost<AssistantResponse>("/assistant", body)
+      .then((reply) => ({ role: "assistant" as const, text: reply.text, listings: reply.listings }))
+      .catch((error: unknown) => ({ role: "assistant" as const, text: error instanceof ApiError && error.status === 422 ? error.message : CHAT_UNAVAILABLE, listings: [] }))
+      .then((message) => {
+        if (!mountedRef.current) return;
+        appendChat(message);
+        chatBusyRef.current = false;
+        setChatBusy(false);
+        setRecentReply(true);
+        clearTimeout(happyTimer.current);
+        happyTimer.current = setTimeout(() => setRecentReply(false), HAPPY_MS);
+      });
+  }, [appendChat]);
 
   const avatarAnimation: AvatarAnimation = chatBusy ? "thinking" : recentReply ? "happy" : "idle";
 

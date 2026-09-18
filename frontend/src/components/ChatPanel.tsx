@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { findListing } from "@/lib/listings";
 import { cardOf } from "@/lib/view";
 import { useAppState } from "@/state/AppState";
 import { Avatar } from "./Avatar";
@@ -8,9 +7,9 @@ import { Icon } from "./Icon";
 import { MiniListing } from "./MiniListing";
 import styles from "./ChatPanel.module.css";
 
-const OPENING = ["دنا پلاس زیر ۹۰۰ میلیون", "کم‌کارکردترین ۲۰۶ تهران", "تارا اتومات به‌صرفه"];
+const OPENING = ["پژو ۲۰۶ تیپ ۲ تهران", "پراید زیر ۳۰۰ میلیون", "دنا پلاس اتومات"];
 const COMPARING = ["بین این‌ها کدوم به‌صرفه‌تره؟"];
-const FOLLOW_UP = ["ارزان‌ترین جک J4", "فقط ارزان‌تر از بازار نشون بده"];
+const FOLLOW_UP = ["ارزان‌ترین سمند مشهد", "فقط ارزان‌تر از بازار نشون بده"];
 
 export function ChatPanel() {
   const { chatOpen, setChatOpen, chatMessages, chatBusy, avatarAnimation, compare, sendChat } = useAppState();
@@ -33,9 +32,9 @@ export function ChatPanel() {
         {chatMessages.map((m, i) => (
           <div key={i} className={m.role === "user" ? styles.fromUser : styles.fromAssistant}>
             <div className={styles.bubble}>{m.text}</div>
-            {m.cardIds && (
+            {m.listings.length > 0 && (
               <div className={styles.cards}>
-                {m.cardIds.map((id) => { const l = findListing(id); return l ? <MiniListing key={id} card={cardOf(l)} bordered /> : null; })}
+                {m.listings.map((l) => <MiniListing key={l.id} card={cardOf(l)} bordered />)}
               </div>
             )}
           </div>
@@ -46,8 +45,8 @@ export function ChatPanel() {
         {suggestions.map((s) => <button key={s} className={styles.chip} onClick={() => sendChat(s)}>{s}</button>)}
       </div>
       <form className={styles.form} onSubmit={submit}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="مثلاً: بین این‌ها کدوم به‌صرفه‌تره؟" className={styles.input} aria-label="پیام" />
-        <button type="submit" className={styles.send} aria-label="ارسال"><Icon name="send" stroke="#fff" /></button>
+        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="مثلاً: بین این‌ها کدوم به‌صرفه‌تره؟" className={styles.input} aria-label="پیام" maxLength={500} />
+        <button type="submit" className={styles.send} aria-label="ارسال" disabled={chatBusy}><Icon name="send" stroke="#fff" /></button>
       </form>
     </aside>
   );

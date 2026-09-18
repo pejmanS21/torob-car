@@ -11,7 +11,7 @@ export function MiniListing({ card, bordered = false }: { card: CardView; border
         <div className={styles.meta}>{card.meta}</div>
       </div>
       <div className={styles.price}>
-        <div className={styles.amount}>{card.priceFa}</div>
+        <div className={styles.amount}>{card.priceText}</div>
         <div className={styles.verdict} style={{ color: card.verdict.color }}>{card.verdict.label}</div>
       </div>
     </Link>
