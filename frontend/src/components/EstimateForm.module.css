@@ -100,3 +100,9 @@
 .askingRow span {
   font-size: 13px;
 }
+.suggestions { list-style: none; margin: 6px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 240px; overflow: auto; }
+.suggestion { display: flex; justify-content: space-between; width: 100%; padding: 8px 10px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); text-align: start; cursor: pointer; }
+.suggestion:hover { background: var(--fill); }
+.count, .hint { font-size: 11px; color: var(--muted); }
+.submit { margin-top: 4px; padding: 12px; border: 0; border-radius: 12px; background: var(--red); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.submit:disabled { opacity: .5; cursor: default; }

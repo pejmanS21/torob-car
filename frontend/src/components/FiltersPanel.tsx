@@ -10,7 +10,7 @@ const PRICE_CAPS = [200, 300, 500, 700, 1_000, 1_500, 2_000, 3_000, 5_000].map((
 const KM_CAPS = [30_000, 50_000, 90_000, 120_000, 150_000, 200_000, 300_000];
 const CURRENT_YEAR = 1405;
 const YEARS = Array.from({ length: 26 }, (_, i) => CURRENT_YEAR - i);
-const TOP_MODELS = 12;
+const MAX_ITEMS = 12;
 const TOP_CITIES = 12;
 const toggle = (list: string[] | undefined, item: string): string[] | undefined => {
   const next = list?.includes(item) ? list.filter((x) => x !== item) : [...(list ?? []), item];
@@ -21,7 +21,7 @@ interface Props { params: SearchOverrides; facets: Facets | null; onChange(next:
 
 export function FiltersPanel({ params, facets, onChange, onReset, open, onClose, resultCount }: Props) {
   const set = (patch: Partial<SearchOverrides>) => onChange({ ...params, ...patch });
-  const models = [...new Set([...(params.models ?? []), ...(facets?.models.slice(0, TOP_MODELS).map((m) => m.model) ?? [])])];
+  const models = [...new Set([...(params.models ?? []), ...(facets?.models.slice(0, MAX_ITEMS).map((m) => m.model) ?? [])])];
   const cities = [...new Set([...(params.cities ?? []), ...(facets?.cities.slice(0, TOP_CITIES).map((c) => c.value) ?? [])])];
   const countOf = (list: { model?: string; value?: string; count: number }[] | undefined, name: string): string =>
     list?.find((item) => (item.model ?? item.value) === name)?.count.toString() ?? "";
