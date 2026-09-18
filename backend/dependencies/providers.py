@@ -16,6 +16,7 @@ from llm.model_factory import build_model
 from ranking.ranker import ListingRanker
 from repositories.catalog_repository import CatalogRepository
 from repositories.city_repository import CityRepository
+from repositories.health_repository import HealthRepository
 from repositories.listing_repository import ListingRepository
 from schemas.search import SearchIntent
 from services.facet_service import FacetService
@@ -90,3 +91,7 @@ def get_facet_service(
         cache,
         settings.search_cache_ttl_seconds,
     )
+
+
+def get_health_repository(session: SessionDep) -> HealthRepository:
+    return HealthRepository(session)

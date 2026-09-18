@@ -1,8 +1,10 @@
-from fastapi import APIRouter
-from sqlalchemy import text
+from typing import Annotated
 
-from dependencies.providers import CacheDep, SessionDep
+from fastapi import APIRouter, Depends
+
+from dependencies.providers import CacheDep, get_health_repository
 from errors import ServiceUnavailableError
+from repositories.health_repository import HealthRepository
 
 router = APIRouter(tags=["health"])
 
@@ -13,8 +15,11 @@ async def read_liveness() -> dict[str, str]:
 
 
 @router.get("/health/ready")
-async def read_readiness(session: SessionDep, cache: CacheDep) -> dict[str, str]:
-    await session.execute(text("SELECT 1"))  # OperationalError → 503 via errors.py
+async def read_readiness(
+    database: Annotated[HealthRepository, Depends(get_health_repository)],
+    cache: CacheDep,
+) -> dict[str, str]:
+    await database.ping()  # OperationalError → 503 via errors.py
     if not await cache.ping():
         raise ServiceUnavailableError("Redis unavailable")
     return {"status": "ready"}
