@@ -1,0 +1,18 @@
+# Developer tool, NOT part of the application stack: a throwaway Postgres for pytest.
+# Loopback-only port and tmpfs data — a documented exception to the "only Traefik
+# publishes a port" rule, because the app's `db` service is unreachable from the host.
+name: torobcar-test
+services:
+  test-db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app_test
+    ports: ["127.0.0.1:54329:5432"]
+    tmpfs: ["/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
