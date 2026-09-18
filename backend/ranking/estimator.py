@@ -1,4 +1,8 @@
-"""Comparables-based price estimate and deal score. Pure Python, no I/O (spec §6.3)."""
+"""Comparables-based price estimate and deal score. Pure Python, no I/O (spec §6.3).
+
+Two entry points share every formula: `estimate_all()` is the ingest bulk pass
+(leave-one-out per listing) and `estimate_for()` answers a single POST /estimates
+query (spec 3 §3.3)."""
 
 import statistics
 import uuid
@@ -31,6 +35,9 @@ CATCH_ALL_MARKER = "سایر"
 SUSPECT_BELOW_PCT = -40.0
 SUSPECT_ABOVE_PCT = 100.0
 ESTIMATED_CATEGORIES = frozenset({Category.LIGHT, Category.MOTORCYCLE})
+QUARTILES = 4
+LOWER_QUARTILE_INDEX = 0
+UPPER_QUARTILE_INDEX = 2
 
 # Mirrors frontend/src/lib/catalog.ts BODIES where an equivalent exists.
 BODY_FACTORS: Mapping[BodyCondition, float] = {
@@ -46,6 +53,7 @@ BODY_FACTORS: Mapping[BodyCondition, float] = {
 }
 
 type GroupKey = tuple[Category, str, int]
+type Groups = Mapping[GroupKey, list[int]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,6 +82,31 @@ class Estimate:
     price_suspect: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class EstimateQuery:
+    """One hypothetical vehicle, as posted to /estimates (no listing of its own)."""
+
+    category: Category
+    trim: str
+    model: str
+    year: int
+    km: int | None
+    insurance_months: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class SingleEstimate:
+    base: int | None
+    est_price: int | None
+    low: int | None
+    high: int | None
+    est_basis: EstimateBasis
+    est_sample_size: int
+    km_factor: float
+    insurance_factor: float
+    tried: tuple[EstimateBasis, ...]  # the basis chain, for the 422 details
+
+
 def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
@@ -87,6 +120,20 @@ def _is_comparable(row: EstimatorInput) -> bool:
         and row.model is not None
         and CATCH_ALL_MARKER not in row.trim
     )
+
+
+def insurance_factor_of(insurance_months: int | None) -> float:
+    if insurance_months is None:
+        return 1.0
+    months_over_neutral = insurance_months - INSURANCE_NEUTRAL_MONTHS
+    return 1 + months_over_neutral * INSURANCE_WEIGHT_PER_MONTH
+
+
+def km_factor_of(km: int | None, expected_km: float | None) -> float:
+    if km is None or not expected_km:
+        return 1.0
+    ratio = _clamp((km - expected_km) / expected_km, KM_RATIO_FLOOR, KM_RATIO_CEILING)
+    return 1 - ratio * KM_WEIGHT
 
 
 class PriceEstimator:
@@ -103,6 +150,52 @@ class PriceEstimator:
     def estimate_all(self) -> list[Estimate]:
         return [self._estimate(row) for row in self._rows]
 
+    def estimate_for(self, query: EstimateQuery) -> SingleEstimate:
+        """The bulk formulas applied to a vehicle that is not in the data set, so
+        nothing is left out. `est_price is None` means no basis had enough
+        comparables; `tried` lists the chain for the caller's error details."""
+        km_factor = self._km_factor_of(query.category, query.year, query.km)
+        insurance_factor = insurance_factor_of(query.insurance_months)
+        tried: list[EstimateBasis] = []
+        for groups, name, span, basis in self._attempts(query.trim, query.model):
+            tried.append(basis)
+            prices = self._collect(groups, query.category, name, query.year, span)
+            if len(prices) >= MIN_COMPARABLES:
+                return self._single(prices, basis, km_factor, insurance_factor, tried)
+        return SingleEstimate(
+            base=None,
+            est_price=None,
+            low=None,
+            high=None,
+            est_basis=EstimateBasis.NONE,
+            est_sample_size=0,
+            km_factor=km_factor,
+            insurance_factor=insurance_factor,
+            tried=tuple(tried),
+        )
+
+    @staticmethod
+    def _single(
+        prices: list[int],
+        basis: EstimateBasis,
+        km_factor: float,
+        insurance_factor: float,
+        tried: list[EstimateBasis],
+    ) -> SingleEstimate:
+        scale = km_factor * insurance_factor
+        quartiles = statistics.quantiles(prices, n=QUARTILES)
+        return SingleEstimate(
+            base=round(statistics.median(prices)),
+            est_price=round(statistics.median(prices) * scale),
+            low=round(quartiles[LOWER_QUARTILE_INDEX] * scale),
+            high=round(quartiles[UPPER_QUARTILE_INDEX] * scale),
+            est_basis=basis,
+            est_sample_size=len(prices),
+            km_factor=km_factor,
+            insurance_factor=insurance_factor,
+            tried=tuple(tried),
+        )
+
     def _build_expected_km(
         self, rows: Iterable[EstimatorInput]
     ) -> dict[tuple[Category, int], float]:
@@ -117,8 +210,8 @@ class PriceEstimator:
         }
 
     def _estimate(self, row: EstimatorInput) -> Estimate:
-        km_factor = self._km_factor(row)
-        insurance_factor = self._insurance_factor(row)
+        km_factor = self._km_factor_of(row.category, row.year, row.km)
+        insurance_factor = insurance_factor_of(row.insurance_months)
         base, basis, sample_size = self._base_price(row)
         if base is None or row.price is None:
             return self._no_estimate(row, km_factor, insurance_factor)
@@ -157,51 +250,45 @@ class PriceEstimator:
             deal_score=None,
         )
 
+    def _attempts(
+        self, trim: str, model: str
+    ) -> tuple[tuple[Groups, str, int, EstimateBasis], ...]:
+        """The basis chain, most specific first (spec §6.3)."""
+        return (
+            (self._by_trim, trim, 0, EstimateBasis.TRIM_YEAR),
+            (self._by_trim, trim, NEAR_YEAR_SPAN, EstimateBasis.TRIM_NEAR_YEAR),
+            (self._by_model, model, 0, EstimateBasis.MODEL_YEAR),
+            (self._by_model, model, FAR_YEAR_SPAN, EstimateBasis.MODEL_NEAR_YEAR),
+        )
+
     def _base_price(
         self, row: EstimatorInput
     ) -> tuple[float | None, EstimateBasis, int]:
         if not _is_comparable(row):
             return None, EstimateBasis.NONE, 0
-        attempts = (
-            (self._by_trim, row.trim, 0, EstimateBasis.TRIM_YEAR),
-            (self._by_trim, row.trim, NEAR_YEAR_SPAN, EstimateBasis.TRIM_NEAR_YEAR),
-            (self._by_model, row.model, 0, EstimateBasis.MODEL_YEAR),
-            (self._by_model, row.model, FAR_YEAR_SPAN, EstimateBasis.MODEL_NEAR_YEAR),
-        )
-        for groups, name, span, basis in attempts:
-            prices = self._comparables(groups, row, name, span)
+        for groups, name, span, basis in self._attempts(row.trim, row.model):
+            prices = self._collect(groups, row.category, name, row.year, span)
+            prices.remove(row.price)  # leave-one-out: a listing never validates itself
             if len(prices) >= MIN_COMPARABLES:
                 return statistics.median(prices), basis, len(prices)
         return None, EstimateBasis.NONE, 0
 
-    def _comparables(
-        self,
-        groups: Mapping[GroupKey, list[int]],
-        row: EstimatorInput,
-        name: str,
-        span: int,
+    @staticmethod
+    def _collect(
+        groups: Groups, category: Category, name: str, year: int, span: int
     ) -> list[int]:
         prices: list[int] = []
-        for year in range(row.year - span, row.year + span + 1):
-            prices.extend(groups.get((row.category, name, year), ()))
-        prices.remove(row.price)  # leave-one-out: a listing never validates itself
+        for candidate_year in range(year - span, year + span + 1):
+            prices.extend(groups.get((category, name, candidate_year), ()))
         return prices
 
-    def _km_factor(self, row: EstimatorInput) -> float:
-        if row.km is None or row.year is None:
+    def _km_factor_of(
+        self, category: Category, year: int | None, km: int | None
+    ) -> float:
+        if year is None:
             return 1.0
-        expected = self._expected_km.get((row.category, self._current_year - row.year))
-        if not expected:
-            return 1.0
-        ratio = _clamp((row.km - expected) / expected, KM_RATIO_FLOOR, KM_RATIO_CEILING)
-        return 1 - ratio * KM_WEIGHT
-
-    @staticmethod
-    def _insurance_factor(row: EstimatorInput) -> float:
-        if row.insurance_months is None:
-            return 1.0
-        months_over_neutral = row.insurance_months - INSURANCE_NEUTRAL_MONTHS
-        return 1 + months_over_neutral * INSURANCE_WEIGHT_PER_MONTH
+        expected = self._expected_km.get((category, self._current_year - year))
+        return km_factor_of(km, expected)
 
     @staticmethod
     def _deal_score(

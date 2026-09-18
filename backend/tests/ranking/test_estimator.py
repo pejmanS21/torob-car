@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 from enums import BodyCondition, Category, EstimateBasis
-from ranking.estimator import EstimatorInput, PriceEstimator
+from ranking.estimator import EstimateQuery, EstimatorInput, PriceEstimator
 
 CURRENT_YEAR = 1405
 TRIM = "پژو 206 تیپ ۲"
@@ -113,3 +113,63 @@ def test_implausible_price_is_flagged_not_rewarded(price: int) -> None:
     assert estimate.price_suspect is True
     assert estimate.deal_score is None and estimate.diff_pct is None
     assert estimate.est_price == 1000  # the estimate itself is still reported
+
+
+def test_single_estimate_uses_the_same_formulas_as_the_bulk_pass() -> None:
+    peers = [make_row(800, km=100_000, insurance_months=12) for _ in range(6)]
+    target = make_row(900, km=150_000, insurance_months=12)
+    estimator = PriceEstimator([target, *peers], CURRENT_YEAR)
+    bulk = estimator.estimate_all()[0]
+    single = estimator.estimate_for(
+        EstimateQuery(
+            category=Category.LIGHT,
+            trim=TRIM,
+            model=MODEL,
+            year=1398,
+            km=150_000,
+            insurance_months=12,
+        )
+    )
+    assert single.est_basis is EstimateBasis.TRIM_YEAR
+    assert single.km_factor == bulk.km_factor
+    assert single.insurance_factor == bulk.insurance_factor
+    assert single.base == 800  # median of all seven prices, nothing left out
+    assert single.est_price == round(800 * single.km_factor * single.insurance_factor)
+    assert single.low <= single.est_price <= single.high
+    assert single.est_sample_size == 7
+
+
+def test_single_estimate_reports_the_basis_chain_when_nothing_matches() -> None:
+    estimator = PriceEstimator([make_row(800)], CURRENT_YEAR)
+    single = estimator.estimate_for(
+        EstimateQuery(
+            category=Category.LIGHT,
+            trim="ناشناخته",
+            model="ناشناخته",
+            year=1398,
+            km=None,
+            insurance_months=None,
+        )
+    )
+    assert single.est_price is None and single.low is None
+    assert single.tried == (
+        EstimateBasis.TRIM_YEAR,
+        EstimateBasis.TRIM_NEAR_YEAR,
+        EstimateBasis.MODEL_YEAR,
+        EstimateBasis.MODEL_NEAR_YEAR,
+    )
+
+
+def test_single_estimate_range_is_the_interquartile_band() -> None:
+    peers = [make_row(price) for price in (700, 750, 800, 850, 1000)]
+    single = PriceEstimator(peers, CURRENT_YEAR).estimate_for(
+        EstimateQuery(
+            category=Category.LIGHT,
+            trim=TRIM,
+            model=MODEL,
+            year=1398,
+            km=None,
+            insurance_months=None,
+        )
+    )
+    assert (single.low, single.est_price, single.high) == (725, 800, 925)

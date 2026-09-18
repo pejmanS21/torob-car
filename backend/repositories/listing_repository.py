@@ -79,20 +79,23 @@ class ListingRepository:
                 )
             )
 
-    async def load_estimator_inputs(self) -> list[EstimatorInput]:
-        found = await self._session.execute(
-            select(
-                Listing.id,
-                Listing.category,
-                VehicleCatalog.trim,
-                VehicleCatalog.model,
-                Listing.year,
-                Listing.km,
-                Listing.price,
-                Listing.insurance_months,
-                Listing.body_condition,
-            ).outerjoin(VehicleCatalog, Listing.catalog_id == VehicleCatalog.id)
-        )
+    async def load_estimator_inputs(
+        self, category: Category | None = None
+    ) -> list[EstimatorInput]:
+        statement = select(
+            Listing.id,
+            Listing.category,
+            VehicleCatalog.trim,
+            VehicleCatalog.model,
+            Listing.year,
+            Listing.km,
+            Listing.price,
+            Listing.insurance_months,
+            Listing.body_condition,
+        ).outerjoin(VehicleCatalog, Listing.catalog_id == VehicleCatalog.id)
+        if category is not None:
+            statement = statement.where(Listing.category == category)
+        found = await self._session.execute(statement)
         return [EstimatorInput(*row) for row in found]
 
     async def apply_estimates(self, estimates: Sequence[Estimate]) -> None:

@@ -163,6 +163,26 @@ class CatalogRepository:
             for brand, model, trim, category_value, count in found
         ]
 
+    async def find_trim(
+        self, category: Category, trim_normalized: str
+    ) -> CatalogEntry | None:
+        statement = select(
+            VehicleCatalog.category,
+            VehicleCatalog.brand,
+            VehicleCatalog.model,
+            VehicleCatalog.trim,
+        ).where(
+            VehicleCatalog.category == category,
+            VehicleCatalog.trim_normalized == trim_normalized,
+        )
+        row = (await self._session.execute(statement)).first()
+        if row is None:
+            return None
+        category_value, brand, model, trim = row
+        return CatalogEntry(
+            category=category_value, brand=brand, model=model, trim=trim
+        )
+
     async def find_model(self, model: str) -> CatalogModel | None:
         statement = (
             select(VehicleCatalog.brand, VehicleCatalog.model, VehicleCatalog.category)

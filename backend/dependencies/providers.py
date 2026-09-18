@@ -20,6 +20,7 @@ from repositories.health_repository import HealthRepository
 from repositories.listing_repository import ListingRepository
 from schemas.search import SearchIntent
 from services.catalog_service import CatalogService
+from services.estimate_service import EstimateService
 from services.facet_service import FacetService
 from services.intent_resolver import IntentResolver
 from services.listing_service import ListingService
@@ -91,6 +92,15 @@ def get_facet_service(
         CatalogRepository(session),
         cache,
         settings.search_cache_ttl_seconds,
+    )
+
+
+def get_estimate_service(
+    session: SessionDep,
+    search: Annotated[SearchService, Depends(get_search_service)],
+) -> EstimateService:
+    return EstimateService(
+        CatalogRepository(session), ListingRepository(session), search
     )
 
 

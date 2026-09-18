@@ -47,6 +47,14 @@ class InvalidSearchError(AppError):
     code = "invalid_search"
 
 
+class NoComparablesError(AppError):
+    status_code = 422
+    code = "no_comparables"
+
+    def __init__(self, tried: list[str]) -> None:
+        super().__init__("Not enough comparable listings", {"tried": tried})
+
+
 class ServiceUnavailableError(AppError):
     status_code = 503
     code = "service_unavailable"
