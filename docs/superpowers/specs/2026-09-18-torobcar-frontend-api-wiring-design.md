@@ -236,3 +236,24 @@ hot reload for both apps). `bun run dev` alone renders every screen in its
 - Backend: `uv run pytest`, ruff, black clean; frontend: `bun test`, `bun run lint`,
   `bunx tsc --noEmit` clean; both images build.
 - Only Traefik publishes a host port; new routers are rate-limited.
+
+## 8. Amendments found while planning (2026-09-18)
+
+Writing the plan meant implementing every task in a throwaway worktree, running it
+against the fixture database and a local Next.js 16 build, and driving the result
+with agent-browser. These findings override the sections they name.
+
+| # | Overrides | Change | Evidence |
+|---|---|---|---|
+| A1 | §3.5 | `Facets` also gains **`model_count`** (distinct catalog models, scoped by `category`) | The home page shows «N مدل»; `facets.models` is capped at 60 rows |
+| A2 | §3.2 | Suggest rows are catalog entries (trims); an empty `q` returns the 10 largest **trims** of the category | `POST /estimates` takes a trim, so the type-ahead must hand one back |
+| A3 | §4.3 | The card meta line is year · km · city/district · gearbox; engine cc (from `attributes`) is shown on the listing page specs grid only | `attributes` live on `ListingDetail`; adding JSONB to every card bloats `/search` for one word |
+| A4 | §3.3 | An unknown trim is 422 **`invalid_search`**; `year` is validated to 1301…current Jalali year | The "similar" intent uses year ± 1 and must stay inside `SearchIntent`'s own bounds (else a 500) |
+| A5 | §5 | Server-rendered pages that fetch per request call **`await connection()`** (`next/server`) before fetching | Next 16.3.5 prerendered `/` at build time and the Docker build failed with `network failure` |
+| A6 | §3.4 | New setting **`ASSISTANT_TIMEOUT_SECONDS`** (default 20) | A tool-calling run is two provider round trips; the 4 s intent timeout would always fall back to rules |
+| A7 | §3.4 | The rules reply's top 3 are **exact matches first**, then best deal score | On the fixture DB a Peugeot 405 with a higher deal score topped a «۲۰۶» reply |
+| A8 | §5 | The filter sheet uses preset caps (`<select>`) for price and km | Real prices span 10 M–10 B toman; a slider cannot cover it |
+
+Confirmed unchanged: the four endpoints, the card/facet fields, phone masking,
+stateless chat, URL-driven results, the deletions in §4.2, the error rules in §6.2
+and the acceptance flow in §6.3 (the smoke script passed all nine steps).
