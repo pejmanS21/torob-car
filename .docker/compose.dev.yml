@@ -11,5 +11,9 @@ services:
     # the anonymous volume keeps the image's Linux .venv from being hidden by the mount
     volumes: ["../backend:/app", "/app/.venv"]
   frontend:
-    command: bun run dev
+    # ponytail: the ratified prod fallback made the final frontend image node:22-slim
+    # with a pruned standalone node_modules (no bun, no `next` CLI, no dev deps) — so
+    # dev targets the `builder` stage instead, which still has bun's full install.
+    build: { context: .., dockerfile: .docker/frontend.Dockerfile, target: builder }
+    command: node node_modules/.bin/next dev --hostname 0.0.0.0 --port 3000
     volumes: ["../frontend:/app", "/app/node_modules"]
