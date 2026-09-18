@@ -5,11 +5,12 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import styles from "./HomeSearch.module.css";
 
+// Real queries that return results on the crawled data (checked against the API).
 const EXAMPLES = [
-  "پژو ۲۰۶ کم‌کارکرد تهران",
-  "دنا پلاس اتومات زیر یک میلیارد",
-  "تارا ارزان‌تر از بازار",
-  "جک J4 زیر ۹۰۰ میلیون",
+  "پژو ۲۰۶ تیپ ۲ تهران",
+  "پراید زیر ۳۰۰ میلیون",
+  "دنا پلاس اتومات",
+  "سمند مدل ۹۵ به بالا مشهد",
 ];
 
 export function HomeSearch() {

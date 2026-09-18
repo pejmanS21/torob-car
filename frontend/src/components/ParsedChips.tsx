@@ -1,7 +1,7 @@
 import { Icon } from "./Icon";
 import styles from "./ParsedChips.module.css";
 
-export function ParsedChips({ chips }: { chips: string[] }) {
+export function ParsedChips({ chips, hint }: { chips: string[]; hint?: string }) {
   return (
     <div className={styles.row}>
       <span className={styles.label}>
@@ -11,6 +11,7 @@ export function ParsedChips({ chips }: { chips: string[] }) {
       {chips.map((chip) => (
         <span key={chip} className={styles.chip}>{chip}</span>
       ))}
+      {hint && <span className={styles.hint}>{hint}</span>}
     </div>
   );
 }

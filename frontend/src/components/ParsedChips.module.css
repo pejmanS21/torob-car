@@ -25,3 +25,4 @@
   font-weight: 600;
   font-size: 12px;
 }
+.hint { font-size: 11px; color: var(--faint); margin-inline-start: auto; }

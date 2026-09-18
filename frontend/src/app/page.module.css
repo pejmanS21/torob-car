@@ -44,3 +44,8 @@
     gap: 16px;
   }
 }
+
+.categories { margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.category { font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; }
+.category b { color: var(--ink); font-weight: 700; margin-inline-start: 4px; }
+.category:hover { border-color: var(--line-strong); color: var(--ink); }

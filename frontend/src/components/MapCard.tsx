@@ -1,12 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { Listing } from "@/lib/types";
+import type { ListingCard } from "@/lib/api/types";
 import styles from "./MapCard.module.css";
 
 const ListingsMap = dynamic(() => import("./ListingsMap"), { ssr: false });
 
-interface Props { title: string; hint: string; listings: Listing[]; single?: boolean; sticky?: boolean; }
+interface Props { title: string; hint: string; listings: ListingCard[]; single?: boolean; sticky?: boolean; }
 
 export function MapCard({ title, hint, listings, single = false, sticky = false }: Props) {
   return (

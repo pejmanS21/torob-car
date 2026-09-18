@@ -1,15 +1,10 @@
 "use client";
-import type { SortKey } from "@/lib/types";
+import type { SortKey } from "@/lib/api/types";
+import { SORT_NAMES } from "@/lib/labels";
+import { SORTS } from "@/lib/search";
 import { useAppState } from "@/state/AppState";
 import { Icon } from "./Icon";
 import styles from "./ResultsToolbar.module.css";
-
-const SORTS: { value: SortKey; label: string }[] = [
-  { value: "score", label: "بهترین ارزش خرید" },
-  { value: "price", label: "ارزان‌ترین" },
-  { value: "km", label: "کم‌کارکردترین" },
-  { value: "new", label: "جدیدترین" },
-];
 
 interface Props {
   countFa: string;
@@ -40,7 +35,7 @@ export function ResultsToolbar({ countFa, subtitle, filtersLabel, onOpenFilters,
         </button>
         <span className={styles.sortWrap}>
           <select value={sort} onChange={(event) => onSort(event.target.value as SortKey)} className={styles.select} aria-label="مرتب‌سازی">
-            {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {SORTS.map((key) => <option key={key} value={key}>{SORT_NAMES[key]}</option>)}
           </select>
           <Icon name="chevronDown" stroke="#667085" className={styles.sortChev} />
         </span>
