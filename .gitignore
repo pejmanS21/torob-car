@@ -5,3 +5,12 @@ node_modules/
 frontend/out/
 *.tsbuildinfo
 assets/*.csv
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+frontend/coverage/
+.scannerwork/
