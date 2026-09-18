@@ -1,0 +1,69 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.head {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diff {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.body {
+  padding: 6px 18px 14px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.note {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.val {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.total,
+.totalLast {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.total {
+  padding: 10px 0 4px;
+}
+
+.totalLast {
+  padding: 4px 0;
+}
+
+.summary {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--ink-2);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+}

@@ -1,0 +1,36 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px 20px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.key {
+  color: var(--muted);
+}
+
+.val {
+  font-weight: 600;
+  text-align: left;
+}
