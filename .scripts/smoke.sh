@@ -33,9 +33,20 @@ step "natural-language search"
 expect_text "از جست‌وجوت فهمیدم" "parsed chips are shown"
 
 step "near-miss labels"
-"${AB[@]}" find text "بیشتر" click || true
-"${AB[@]}" wait --load networkidle
-expect_text "آگهی‌های مشابه" "near-miss divider after the exact matches"
+divider_seen=0
+for attempt in 0 1 2 3 4 5; do
+  if page_text | grep -q -- "آگهی‌های مشابه"; then divider_seen=1; break; fi
+  [[ "$attempt" -eq 5 ]] && break
+  "${AB[@]}" find text "بیشتر" click || true
+  "${AB[@]}" wait --load networkidle
+done
+if [[ "$divider_seen" -eq 1 ]]; then
+  echo "ok: near-miss divider after the exact matches"
+else
+  echo "FAIL: near-miss divider after the exact matches (missing «آگهی‌های مشابه» after 5 clicks)"
+  "${AB[@]}" screenshot smoke-fail.png
+  exit 1
+fi
 
 step "listing page + similar"
 LISTING="$(first_href "a[href^='/listing/']")"

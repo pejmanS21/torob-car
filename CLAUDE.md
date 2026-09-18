@@ -580,7 +580,6 @@ FROM node:22-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY frontend/ ./
-ENV NEXT_PUBLIC_API_URL=/api
 RUN node node_modules/.bin/next build
 
 FROM node:22-slim AS runtime
