@@ -62,3 +62,11 @@ def test_no_rows_means_no_numbers() -> None:
     summary = summarize_model([], top_deals=6)
     assert summary.count == 0 and summary.price_median is None
     assert summary.histogram == () and summary.trims == ()
+
+
+def test_histogram_edges_stay_within_the_listed_prices_for_small_samples() -> None:
+    rows = [make_row(500_000_000), make_row(520_000_000), make_row(600_000_000)]
+    summary = summarize_model(rows, top_deals=6)
+    assert sum(bucket.count for bucket in summary.histogram) == 3
+    assert all(bucket.low >= 500_000_000 for bucket in summary.histogram)
+    assert all(bucket.high <= 600_000_000 for bucket in summary.histogram)

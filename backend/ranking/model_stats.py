@@ -53,7 +53,7 @@ class ModelSummary:
 def _percentile_bounds(prices: Sequence[int]) -> tuple[int, int]:
     if len(prices) < MIN_ROWS_FOR_PERCENTILES:
         return prices[0], prices[0]
-    cuts = statistics.quantiles(prices, n=PERCENTILE_STEPS)
+    cuts = statistics.quantiles(prices, n=PERCENTILE_STEPS, method="inclusive")
     return round(cuts[LOW_PERCENTILE_INDEX]), round(cuts[HIGH_PERCENTILE_INDEX])
 
 
