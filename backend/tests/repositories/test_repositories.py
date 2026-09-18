@@ -1,10 +1,14 @@
+from pathlib import Path
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from enums import Category
+from ingest.pipeline import IngestPipeline
 from repositories.catalog_repository import CatalogRepository
 from repositories.city_repository import CityRepository
 from repositories.listing_repository import CandidateFilter, ListingRepository
+from tests.support import DictCache
 
 pytestmark = pytest.mark.db
 MILLION = 1_000_000
@@ -80,3 +84,45 @@ async def test_suspect_prices_are_hidden_from_candidates(
     cheap = await repository.find_candidates(cheap_only, 5_000)
     assert hidden > 0
     assert all(c.price is None or c.price <= 50 * MILLION for c in cheap)
+
+
+async def test_second_ingest_of_the_same_file_changes_nothing(
+    seeded_session: AsyncSession, cache: DictCache
+) -> None:
+    fixture_csv = (
+        Path(__file__).resolve().parents[1] / "fixtures" / "listings_sample.csv"
+    )
+    assert fixture_csv.exists()
+
+    # Record initial state after seeded_session fixture has already run once
+    listings_repo = ListingRepository(seeded_session)
+    cities_repo = CityRepository(seeded_session)
+    catalog_repo = CatalogRepository(seeded_session)
+
+    initial_listing_count = await listings_repo.count()
+    assert initial_listing_count == 617
+
+    initial_cities = len(await cities_repo.list_names())
+    assert initial_cities > 0
+
+    # Count catalog entries by querying top models with a high limit
+    initial_catalog_models = await catalog_repo.list_top_models(None, 10_000)
+    initial_catalog_count = len(initial_catalog_models)
+    assert initial_catalog_count > 0
+
+    # Run the pipeline a second time with the same file
+    pipeline = IngestPipeline(cities_repo, catalog_repo, listings_repo, cache)
+    report = await pipeline.run(fixture_csv)
+
+    # Verify idempotency: counts unchanged, full re-match, no rejects
+    assert await listings_repo.count() == initial_listing_count
+    assert await listings_repo.count() == 617
+    assert len(await cities_repo.list_names()) == initial_cities
+    final_catalog_models = await catalog_repo.list_top_models(None, 10_000)
+    assert len(final_catalog_models) == initial_catalog_count
+
+    # Verify the re-ingest report
+    assert report.rows_read == 617
+    assert report.rows_upserted == 617
+    assert report.rows_rejected == 0
+    assert report.data_version == 2
