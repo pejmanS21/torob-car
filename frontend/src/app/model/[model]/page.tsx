@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { ModelScreen } from "@/components/ModelScreen";
 import { ApiError, apiGet } from "@/lib/api/client";
@@ -5,6 +6,7 @@ import type { ModelStats } from "@/lib/api/types";
 
 // Rendered on request (no generateStaticParams); `model` is the URL-encoded model name.
 export default async function ModelPage({ params }: { params: Promise<{ model: string }> }) {
+  await connection();
   const { model } = await params;
   let stats: ModelStats;
   try {
