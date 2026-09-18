@@ -1,16 +1,14 @@
 # ترب‌کار (Torobcar)
 
 A Persian, RTL car-search app — search, browse, compare, and get a price
-estimate for used cars. The frontend UI still runs on synthetic data generated
-in `src/lib` (it is not yet wired to the API); a real FastAPI search backend
-now exists alongside it and is runnable and tested on its own — see
-**Backend** below.
+estimate for used cars. The Next.js frontend renders real crawled Divar data
+served by the FastAPI search backend (see **Backend** below); nothing on screen
+is synthetic.
 
 ## Getting started
 
 The full stack (Traefik + backend + frontend + Postgres + Redis) is the
-supported way to run everything locally, though the frontend does not call
-the backend API yet:
+supported way to run everything locally — the frontend needs the backend:
 
 ```bash
 cp example.env .env
@@ -20,12 +18,19 @@ cp example.env .env
 
 The app runs at `http://localhost` (Traefik, port 80).
 
-To run just the frontend against its own dev server (no backend):
+`bun run dev` alone (no backend) renders every screen in its «سرویس جست‌وجو در
+دسترس نیست» state — there is no mock server. Server Components reach the backend
+at `API_INTERNAL_URL` (`http://backend:8000` in Compose); the browser calls
+`/api/v1` on the same origin through Traefik.
+
+### Acceptance smoke test
+
+With the stack running (and the CSV ingested), drive the real UI end to end with
+[agent-browser](https://github.com/vercel-labs/agent-browser):
 
 ```bash
-cd frontend
-bun install
-bun run dev
+./.scripts/smoke.sh              # home → search → listing → compare → estimate → chat → 422
+HEADED=1 ./.scripts/smoke.sh     # watch it
 ```
 
 ## Scripts (run from `frontend/`)
@@ -60,7 +65,11 @@ full architecture and conventions.
 | `GET /listings/{id}` | `ListingDetail` |
 | `GET /listings?ids=` | batch fetch for the compare page (≤ 4 ids) |
 | `GET /listings/{id}/similar?limit=6` | same ranker, intent derived from the listing |
-| `GET /facets?category=` | categories, top brands/models, cities — each with counts; cached under `data_version` |
+| `GET /facets?category=` | categories, top brands/models, cities (scoped by `category`) with counts, `model_count`, `data_as_of`; cached under `data_version` |
+| `GET /models/{model}/stats` | count, year range, price median/min/max, 8-bucket histogram, per-trim counts, top deals |
+| `GET /catalog/suggest?q=&category=` | ≤ 10 typo-tolerant `{brand, model, trim, category, count}` rows; empty `q` = largest trims |
+| `POST /estimates` | `{category, trim, year, km, insurance_months, body_condition, asking_price}` → estimate, IQR band, breakdown, asking verdict, similar; 422 `no_comparables` |
+| `POST /assistant` | `{messages (≤ 10, ≤ 500 chars), compare_ids}` → `{text, listings, answered_by}`; LLM agent with search/compare tools, rules fallback |
 | `GET /health` · `GET /health/ready` | liveness · readiness (Postgres + Redis ping) |
 
 ### Tests

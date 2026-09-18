@@ -22,7 +22,7 @@ This is a **monolith fullstack** application kept in a single repository:
   to Docker Hub.
 
 The backend exposes a versioned REST API (`/api/v1`) that the frontend is designed
-to consume; the frontend still runs on synthetic data until it is wired to the API
+to consume; the frontend renders only what the API returns (no synthetic data)
 (Spec 3). Traefik routes `/api` (and `/health`) to the backend and everything else to
 the frontend, so the whole app is served from one origin.
 
@@ -156,9 +156,9 @@ LLM_PROVIDER=google
 LLM_MODEL=gemini-3.7-flash
 LLM_API_KEY=
 LLM_BASE_URL=
-# Frontend — the browser reaches the API through Traefik on the same origin,
-# so use a relative base path (no host/port). Avoids CORS entirely.
-NEXT_PUBLIC_API_URL=/api
+# Frontend — Server Components call the backend directly on the Compose network;
+# the browser uses /api/v1 on the same origin through Traefik (no variable needed).
+API_INTERNAL_URL=http://backend:8000
 # Postgres (consumed by the db service in compose)
 POSTGRES_USER=app
 POSTGRES_PASSWORD=app
@@ -167,10 +167,10 @@ POSTGRES_DB=app
 SONAR_TOKEN=
 ```
 
-Because everything sits behind Traefik, browser requests are **same-origin**: set
-`NEXT_PUBLIC_API_URL=/api`. Server-side calls from Next.js (Server Components,
-route handlers) run inside the network and may instead hit the backend directly at
-`http://backend:8000` — never the public host.
+Because everything sits behind Traefik, browser requests are **same-origin**
+(`/api/v1`, added in `frontend/src/lib/api/base.ts` only). Server-side calls from
+Next.js (Server Components) run inside the network and hit the backend directly at
+`API_INTERNAL_URL` (`http://backend:8000`) — never the public host.
 
 Backend code reads config **only** through `core/config.py` (a `Settings` class);
 never read `os.environ` elsewhere.
@@ -255,6 +255,7 @@ semgrep ci                   # Run Semgrep with the project ruleset
 ./.scripts/test-db.sh        # Start the throwaway Postgres that `uv run pytest` needs
 ./.scripts/ingest.sh <csv>   # Load a Divar CSV (runs inside the backend container)
 ./.scripts/sonar.sh          # Coverage + local SonarQube scan (needs SONAR_TOKEN)
+./.scripts/smoke.sh          # agent-browser acceptance run against the running stack
 ```
 
 ---
@@ -424,8 +425,15 @@ class UUIDPrimaryKeyMixin:
   only when interactivity, state, or browser APIs require it.
 - **TypeScript strict mode** — no `any` unless unavoidable and commented.
 - Components are small and single-purpose; co-locate component-specific styles.
-- Centralize backend calls in `src/lib` (a typed API client). Read the base URL from
-  `NEXT_PUBLIC_API_URL`, never hard-coded.
+- All backend calls go through the typed client in `src/lib/api/` (`apiGet`,
+  `apiPost`, `useApi`); `base.ts` is the only place the `/api/v1` prefix and
+  `API_INTERNAL_URL` are known. Every fetch is `cache: "no-store"`.
+- `src/lib/api/types.ts` mirrors `backend/schemas/*.py` by hand — change both together.
+- The UI never invents data: loading skeletons, the backend's 422 message inline, and
+  «سرویس جست‌وجو در دسترس نیست» with retry for everything else. Branch on
+  `ApiError.code`/`status`, never on message text.
+- Server Components that fetch on every request call **`await connection()`** first —
+  Next 16 would otherwise prerender them (and hit the API) at build time.
 - Keep server-only secrets out of `NEXT_PUBLIC_*` variables.
 - `next.config.ts` must set `output: "standalone"` so the Docker image stays small.
 - Run `bun run lint` before considering frontend work done.
@@ -624,6 +632,14 @@ backend:
     - traefik.http.routers.api-search.middlewares=search-ratelimit
     - traefik.http.middlewares.search-ratelimit.ratelimit.average=10
     - traefik.http.middlewares.search-ratelimit.ratelimit.burst=20
+    # LLM-backed and estimator routes: tighter limit, same explicit priority tier.
+    - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`)
+    - traefik.http.routers.api-assistant.priority=100
+    - traefik.http.routers.api-assistant.entrypoints=web
+    - traefik.http.routers.api-assistant.service=backend
+    - traefik.http.routers.api-assistant.middlewares=assistant-ratelimit
+    - traefik.http.middlewares.assistant-ratelimit.ratelimit.average=5
+    - traefik.http.middlewares.assistant-ratelimit.ratelimit.burst=10
     - traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/health`)
     - traefik.http.routers.api.priority=50
     - traefik.http.routers.api.entrypoints=web
@@ -684,6 +700,14 @@ services:
       - traefik.http.routers.api-search.middlewares=search-ratelimit
       - traefik.http.middlewares.search-ratelimit.ratelimit.average=10
       - traefik.http.middlewares.search-ratelimit.ratelimit.burst=20
+      # LLM-backed and estimator routes: tighter limit, same explicit priority tier.
+      - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`)
+      - traefik.http.routers.api-assistant.priority=100
+      - traefik.http.routers.api-assistant.entrypoints=web
+      - traefik.http.routers.api-assistant.service=backend
+      - traefik.http.routers.api-assistant.middlewares=assistant-ratelimit
+      - traefik.http.middlewares.assistant-ratelimit.ratelimit.average=5
+      - traefik.http.middlewares.assistant-ratelimit.ratelimit.burst=10
       - traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/health`)
       - traefik.http.routers.api.priority=50
       - traefik.http.routers.api.entrypoints=web
@@ -886,4 +910,6 @@ alone is not enough.
 - [ ] No Semgrep or Gitleaks findings.
 - [ ] `./.scripts/sonar.sh` passes the quality gate.
 - [ ] Ranking changes keep the golden-query suite green.
+- [ ] Frontend changes keep `bunx tsc --noEmit` clean and `./.scripts/smoke.sh` passing
+      against the running stack.
 - [ ] No secrets, generated files, or lockfiles edited by hand.
