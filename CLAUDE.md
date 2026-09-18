@@ -21,9 +21,10 @@ This is a **monolith fullstack** application kept in a single repository:
 - **Delivery** — Dockerized, orchestrated with Compose, shipped via GitHub Actions
   to Docker Hub.
 
-The backend exposes a versioned REST API (`/api/v1`); the frontend consumes it.
-Traefik routes `/api` (and `/health`) to the backend and everything else to the
-frontend, so the whole app is served from one origin.
+The backend exposes a versioned REST API (`/api/v1`) that the frontend is designed
+to consume; the frontend still runs on synthetic data until it is wired to the API
+(Spec 3). Traefik routes `/api` (and `/health`) to the backend and everything else to
+the frontend, so the whole app is served from one origin.
 
 ---
 
