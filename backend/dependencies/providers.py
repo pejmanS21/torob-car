@@ -54,6 +54,9 @@ def get_assistant_agent() -> Agent[AssistantDeps, AssistantReply] | None:
 
 CacheDep = Annotated[Cache, Depends(get_cache)]
 AgentDep = Annotated[Agent[None, SearchIntent] | None, Depends(get_intent_agent)]
+AssistantAgentDep = Annotated[
+    Agent[AssistantDeps, AssistantReply] | None, Depends(get_assistant_agent)
+]
 
 
 def get_query_parser(
@@ -108,9 +111,10 @@ def get_assistant_service(
     settings: SettingsDep,
     parser: Annotated[QueryParser, Depends(get_query_parser)],
     search: Annotated[SearchService, Depends(get_search_service)],
+    agent: AssistantAgentDep,
 ) -> AssistantService:
     return AssistantService(
-        get_assistant_agent(),
+        agent,
         parser,
         search,
         ListingRepository(session),
