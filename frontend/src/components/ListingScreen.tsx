@@ -1,70 +1,51 @@
-"use client";
-
-import { useMemo } from "react";
-import { fa, num } from "@/lib/format";
-import { LISTINGS, findListing } from "@/lib/listings";
+import type { ListingCard, ListingDetail } from "@/lib/api/types";
+import { formatToman } from "@/lib/format";
 import { breakdownRows, summaryOf, verdictNote } from "@/lib/pricing";
-import type { Listing } from "@/lib/types";
+import { specsOf } from "@/lib/specs";
 import { cardOf } from "@/lib/view";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { BreakdownCard } from "./BreakdownCard";
 import { Gallery } from "./Gallery";
 import { MapCard } from "./MapCard";
 import { PriceCard } from "./PriceCard";
-import { SellerAssessmentCard } from "./SellerAssessmentCard";
 import { SellerText } from "./SellerText";
 import { SimilarListings } from "./SimilarListings";
 import { SpecsGrid } from "./SpecsGrid";
 import { SummaryCard } from "./SummaryCard";
 import styles from "./ListingScreen.module.css";
 
-const SIMILAR_COUNT = 3;
-const TOMAN_PER_MILLION = 1e6;
+const NO_ESTIMATE = "بدون تخمین";
 
-function similarTo(listing: Listing): Listing[] {
-  return LISTINGS.filter((x) => x.modelId === listing.modelId && x.id !== listing.id)
-    .sort((a, b) => Math.abs(a.price - listing.price) - Math.abs(b.price - listing.price))
-    .slice(0, SIMILAR_COUNT);
-}
-
-function specsOf(l: Listing): { k: string; v: string }[] {
-  return [
-    ["برند و مدل", l.modelName], ["سال ساخت", fa(l.year)], ["کارکرد", `${num(l.km)} کیلومتر`], ["رنگ", l.color], ["گیربکس", l.gear], ["نوع سوخت", "بنزین"],
-    ["وضعیت بدنه", l.body.name], ["قیمت پایه (فروشنده)", `${num(l.price * TOMAN_PER_MILLION)} تومان`], ["مهلت بیمهٔ شخص ثالث", `${fa(l.ins)} ماه`], ["محل", `${l.city}، ${l.district}`], ["منبع", "دیوار"],
-  ].map(([k, v]) => ({ k, v }));
-}
-
-export function ListingScreen({ listingId }: { listingId: string }) {
-  const listing = useMemo(() => findListing(listingId), [listingId]);
-  const mapListings = useMemo(() => (listing ? [listing] : []), [listing]);
-  if (!listing) throw new Error(`Listing ${listingId} not found`); // page.tsx already 404s unknown ids
-
-  const card = cardOf(listing);
-  const modelHref = `/model/${listing.modelId}`;
-  const cityQuery = `${listing.modelName} ${listing.city}`;
+export function ListingScreen({ detail, similar }: { detail: ListingDetail; similar: ListingCard[] }) {
+  const card = cardOf(detail);
+  const modelHref = detail.model ? `/model/${encodeURIComponent(detail.model)}` : "/results";
+  const modelLabel = detail.model ?? detail.title;
+  const cityQuery = `${modelLabel} ${detail.city}`;
+  const photos = detail.image_urls.length ? detail.image_urls : [card.img];
 
   return (
     <section className={styles.screen}>
-      <Breadcrumbs items={[{ label: "خانه", href: "/" }, { label: listing.modelName, href: modelHref }, { label: card.title }]} />
+      <Breadcrumbs items={[{ label: "خانه", href: "/" }, { label: modelLabel, href: modelHref }, { label: card.title }]} />
       <div className={styles.grid}>
         <div className={styles.mainCol}>
-          <Gallery key={listing.id} photos={listing.photos} title={card.title} />
-          <SummaryCard summary={summaryOf(listing)} tags={listing.tags} />
-          <SpecsGrid specs={specsOf(listing)} />
+          <Gallery key={detail.id} photos={photos} title={card.title} />
+          <SummaryCard summary={summaryOf(detail)} />
+          <SpecsGrid specs={specsOf(detail)} />
           <SellerText
-            desc={listing.desc}
+            desc={detail.description}
             links={[
-              { text: listing.modelName, href: modelHref },
-              { text: `${listing.modelName} در ${listing.city}`, href: `/results?q=${encodeURIComponent(cityQuery)}` },
+              { text: modelLabel, href: modelHref },
+              { text: `${modelLabel} در ${detail.city}`, href: `/results?q=${encodeURIComponent(cityQuery)}` },
             ]}
           />
-          <MapCard title="محل خودرو" hint={`${listing.city}، ${listing.district} · محدودهٔ تقریبی`} listings={mapListings} single />
+          {detail.lat !== null && (
+            <MapCard title="محل خودرو" hint={`${detail.district ? `${detail.city}، ${detail.district}` : detail.city} · محدودهٔ تقریبی`} listings={[detail]} single />
+          )}
         </div>
         <div className={styles.sideCol}>
-          <PriceCard listing={listing} card={card} />
-          <SellerAssessmentCard assess={listing.assess} />
-          <BreakdownCard verdict={card.verdict} diffText={card.diffText} rows={breakdownRows(listing)} estFa={num(listing.est)} priceFa={card.priceFa} note={verdictNote(listing)} />
-          <SimilarListings title="آگهی‌های مشابه" cards={similarTo(listing).map(cardOf)} />
+          <PriceCard detail={detail} card={card} />
+          <BreakdownCard verdict={card.verdict} diffText={card.diffText} rows={breakdownRows(detail)} estText={detail.est_price === null ? NO_ESTIMATE : formatToman(detail.est_price)} priceText={card.priceText} note={verdictNote(detail)} />
+          <SimilarListings title="آگهی‌های مشابه" cards={similar.map((l) => cardOf(l))} />
         </div>
       </div>
     </section>

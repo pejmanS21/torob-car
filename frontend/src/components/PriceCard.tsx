@@ -1,39 +1,39 @@
 "use client";
 
+import type { ListingDetail } from "@/lib/api/types";
 import { fa, num } from "@/lib/format";
-import type { Listing } from "@/lib/types";
 import type { CardView } from "@/lib/view";
 import { useAppState } from "@/state/AppState";
 import { Icon } from "./Icon";
 import styles from "./PriceCard.module.css";
 
-export function PriceCard({ listing, card }: { listing: Listing; card: CardView }) {
+export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardView }) {
   const { compare, saved, toggleCompare, toggleSaved } = useAppState();
-  const inCompare = compare.includes(listing.id);
-  const isSaved = saved.includes(listing.id);
+  const inCompare = compare.includes(detail.id);
+  const isSaved = saved.includes(detail.id);
   const quick = [
-    { k: "کارکرد", v: num(listing.km) },
-    { k: "مدل (سال تولید)", v: fa(listing.year) },
-    { k: "رنگ", v: listing.color },
+    { k: "کارکرد", v: detail.km === null ? "—" : num(detail.km) },
+    { k: "مدل (سال تولید)", v: detail.year === null ? "—" : fa(detail.year) },
+    { k: "رنگ", v: detail.color ?? "—" },
   ];
 
   return (
     <div className={styles.card}>
       <div className={styles.headRow}>
         <h1 className={styles.title}>{card.title}</h1>
-        <span className={styles.posted}>{card.posted}</span>
+        <span className={styles.posted} suppressHydrationWarning>{card.posted}</span>
       </div>
       <div className={styles.meta}>{card.meta}</div>
       <div className={styles.price}>
-        {card.priceFa} <span className={styles.unit}>میلیون تومان</span>
+        {card.priceText}{detail.price !== null && <span className={styles.unit}> تومان</span>}
       </div>
       <div className={styles.actions}>
-        <a href={`https://divar.ir/v/-/${listing.token}`} target="_blank" rel="noopener" className={styles.divar}>
+        <a href={detail.url} target="_blank" rel="noopener" className={styles.divar}>
           مشاهده در دیوار
         </a>
         <button
           type="button"
-          onClick={() => toggleCompare(listing.id)}
+          onClick={() => toggleCompare(detail.id)}
           className={styles.compare}
           style={{
             borderColor: inCompare ? "var(--red)" : "var(--line)",
@@ -43,7 +43,7 @@ export function PriceCard({ listing, card }: { listing: Listing; card: CardView 
         >
           {inCompare ? "✓ در مقایسه" : "+ مقایسه"}
         </button>
-        <button type="button" onClick={() => toggleSaved(listing.id)} title="نشان‌کردن" aria-pressed={isSaved} className={styles.bookmark}>
+        <button type="button" onClick={() => toggleSaved(detail.id)} title="نشان‌کردن" aria-pressed={isSaved} className={styles.bookmark}>
           <Icon name="bookmark" size={18} stroke="var(--ink)" fill={isSaved ? "#172033" : "none"} />
         </button>
       </div>

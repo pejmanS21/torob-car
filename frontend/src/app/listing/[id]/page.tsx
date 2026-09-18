@@ -1,11 +1,24 @@
 import { notFound } from "next/navigation";
 import { ListingScreen } from "@/components/ListingScreen";
-import { LISTINGS, findListing } from "@/lib/listings";
+import { ApiError, apiGet } from "@/lib/api/client";
+import type { ListingCard, ListingDetail } from "@/lib/api/types";
 
-export const generateStaticParams = () => LISTINGS.map((l) => ({ id: l.id }));
+const SIMILAR_LIMIT = 3;
+const NOT_FOUND_STATUSES = [404, 422]; // 422 = not even a UUID
 
+// Rendered on request (no generateStaticParams): detail and similar in parallel.
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!findListing(id)) notFound();
-  return <ListingScreen listingId={id} />;
+  let detail: ListingDetail;
+  let similar: ListingCard[];
+  try {
+    [detail, similar] = await Promise.all([
+      apiGet<ListingDetail>(`/listings/${id}`),
+      apiGet<ListingCard[]>(`/listings/${id}/similar`, { limit: SIMILAR_LIMIT }),
+    ]);
+  } catch (error) {
+    if (error instanceof ApiError && NOT_FOUND_STATUSES.includes(error.status)) notFound();
+    throw error; // → app/error.tsx
+  }
+  return <ListingScreen detail={detail} similar={similar} />;
 }
