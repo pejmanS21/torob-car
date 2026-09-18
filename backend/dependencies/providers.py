@@ -19,6 +19,7 @@ from repositories.city_repository import CityRepository
 from repositories.health_repository import HealthRepository
 from repositories.listing_repository import ListingRepository
 from schemas.search import SearchIntent
+from services.catalog_service import CatalogService
 from services.facet_service import FacetService
 from services.intent_resolver import IntentResolver
 from services.listing_service import ListingService
@@ -95,6 +96,10 @@ def get_facet_service(
 
 def get_model_stats_service(session: SessionDep) -> ModelStatsService:
     return ModelStatsService(CatalogRepository(session), ListingRepository(session))
+
+
+def get_catalog_service(session: SessionDep) -> CatalogService:
+    return CatalogService(CatalogRepository(session))
 
 
 def get_health_repository(session: SessionDep) -> HealthRepository:

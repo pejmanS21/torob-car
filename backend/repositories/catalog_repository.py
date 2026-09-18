@@ -39,6 +39,15 @@ class CatalogModel:
 
 
 @dataclass(frozen=True, slots=True)
+class CatalogSuggestionRow:
+    brand: str
+    model: str
+    trim: str
+    category: Category
+    listing_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class ModelCount:
     brand: str
     model: str
@@ -116,6 +125,43 @@ class CatalogRepository:
             statement = statement.where(VehicleCatalog.category == category)
         found = await self._session.execute(statement)
         return [CatalogMatch(*row) for row in found]
+
+    async def suggest(
+        self, query: str, category: Category | None, min_similarity: float, limit: int
+    ) -> list[CatalogSuggestionRow]:
+        """Type-ahead rows: by similarity when there is a query, else the largest
+        catalog entries of the category."""
+        columns = (
+            VehicleCatalog.brand,
+            VehicleCatalog.model,
+            VehicleCatalog.trim,
+            VehicleCatalog.category,
+            VehicleCatalog.listing_count,
+        )
+        if query:
+            score = self._trim_similarity(query)
+            statement = (
+                select(*columns)
+                .where(score >= min_similarity)
+                .order_by(score.desc(), VehicleCatalog.listing_count.desc())
+            )
+        else:
+            statement = select(*columns).order_by(
+                VehicleCatalog.listing_count.desc(), VehicleCatalog.trim
+            )
+        if category is not None:
+            statement = statement.where(VehicleCatalog.category == category)
+        found = await self._session.execute(statement.limit(limit))
+        return [
+            CatalogSuggestionRow(
+                brand=brand,
+                model=model,
+                trim=trim,
+                category=category_value,
+                listing_count=count,
+            )
+            for brand, model, trim, category_value, count in found
+        ]
 
     async def find_model(self, model: str) -> CatalogModel | None:
         statement = (
