@@ -17,6 +17,8 @@ const vazirmatn = Vazirmatn({
 export const metadata: Metadata = {
   title: "ترب‌کار",
   description: "ماشین می‌خوای؟ فقط بگو چی.",
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "ترب‌کار", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
