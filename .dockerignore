@@ -1,0 +1,14 @@
+**/node_modules
+**/.venv
+**/.next
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/coverage
+.git
+.env
+assets
+prototype
+brag-output
+graphify-out
+docs
