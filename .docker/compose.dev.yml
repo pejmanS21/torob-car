@@ -15,5 +15,6 @@ services:
     # with a pruned standalone node_modules (no bun, no `next` CLI, no dev deps) — so
     # dev targets the `builder` stage instead, which still has bun's full install.
     build: { context: .., dockerfile: .docker/frontend.Dockerfile, target: builder }
+    image: pejmans21/torobcar-frontend-dev
     command: node node_modules/.bin/next dev --hostname 0.0.0.0 --port 3000
     volumes: ["../frontend:/app", "/app/node_modules"]
