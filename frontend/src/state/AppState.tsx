@@ -48,7 +48,14 @@ const AppStateContext = createContext<AppStateValue | null>(null);
 function readPersisted(): Persisted {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...EMPTY, ...(JSON.parse(raw) as Partial<Persisted>) } : EMPTY;
+    if (!raw) return EMPTY;
+    const parsed = JSON.parse(raw) as Partial<Persisted>;
+    return {
+      compare: Array.isArray(parsed.compare) ? parsed.compare.slice(0, MAX_COMPARE) : EMPTY.compare,
+      saved: Array.isArray(parsed.saved) ? parsed.saved : EMPTY.saved,
+      alerts: Array.isArray(parsed.alerts) ? parsed.alerts : EMPTY.alerts,
+      loggedIn: typeof parsed.loggedIn === "boolean" ? parsed.loggedIn : EMPTY.loggedIn,
+    };
   } catch {
     return EMPTY; // storage blocked or corrupt → start clean (spec: Error handling)
   }

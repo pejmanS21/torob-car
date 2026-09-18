@@ -5,7 +5,7 @@ import { fa } from "@/lib/format";
 import { LISTINGS } from "@/lib/listings";
 import { modelRange } from "@/lib/modelStats";
 import { CHEAP_THRESHOLD_PCT } from "@/lib/pricing";
-import { DEFAULT_FILTERS, activeFilterCount, chipsOf, filterListings, filtersFromQuery, parseQuery, sortListings } from "@/lib/search";
+import { DEFAULT_FILTERS, activeFilterCount, alertMatches, chipsOf, filterListings, filtersFromQuery, parseQuery, sortListings } from "@/lib/search";
 import type { Filters, SortKey } from "@/lib/types";
 import { cardOf } from "@/lib/view";
 import { useAppState } from "@/state/AppState";
@@ -38,7 +38,7 @@ export function ResultsScreen({ query }: { query: string }) {
 
   function resetFilters() { setFilters(DEFAULT_FILTERS); if (query) router.replace("/results"); }
   function saveSearch() {
-    addAlert({ title: chips.length ? chips.slice(0, 2).join(" · ") : "جست‌وجوی فعلی", threshold: filters.maxPrice, matches: filtered.filter((l) => l.price < filters.maxPrice).length });
+    addAlert({ title: chips.length ? chips.slice(0, 2).join(" · ") : "جست‌وجوی فعلی", threshold: filters.maxPrice, matches: alertMatches(filtered, filters.maxPrice) });
   }
 
   return (

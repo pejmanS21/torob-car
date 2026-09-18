@@ -19,6 +19,7 @@
 
 .fixed .map {
   height: 260px;
+  flex: none;
 }
 
 .head {

@@ -89,5 +89,8 @@ const COMPARATORS: Record<SortKey, (a: Listing, b: Listing) => number> = {
 };
 export const sortListings = (list: Listing[], sort: SortKey): Listing[] => [...list].sort(COMPARATORS[sort]);
 
+export const alertMatches = (listings: Listing[], threshold: number): number =>
+  listings.filter((l) => l.price <= threshold).length;
+
 export const activeFilterCount = (f: Filters): number =>
   f.models.length + f.cities.length + Number(f.maxPrice < DEFAULT_MAX_PRICE) + Number(f.maxKm < DEFAULT_MAX_KM) + Number(f.gear !== "همه") + Number(f.onlyBelow);

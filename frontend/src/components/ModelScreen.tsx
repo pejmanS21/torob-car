@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { num } from "@/lib/format";
 import { LISTINGS } from "@/lib/listings";
-import { ALERT_FRACTION_OF_MEDIAN, modelStats } from "@/lib/modelStats";
+import { modelStats } from "@/lib/modelStats";
+import { alertMatches } from "@/lib/search";
 import { cardOf } from "@/lib/view";
 import { useAppState } from "@/state/AppState";
 import { Breadcrumbs } from "./Breadcrumbs";
@@ -21,7 +22,7 @@ export function ModelScreen({ modelId }: { modelId: string }) {
     addAlert({
       title: stats.model.name,
       threshold: stats.alertThreshold,
-      matches: stats.listings.filter((l) => l.price < stats.median * ALERT_FRACTION_OF_MEDIAN).length,
+      matches: alertMatches(stats.listings, stats.alertThreshold),
     });
 
   return (

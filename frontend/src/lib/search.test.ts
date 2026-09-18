@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { LISTINGS } from "./listings";
-import { DEFAULT_FILTERS, activeFilterCount, chipsOf, filterListings, filtersFromQuery, parseQuery, sortListings } from "./search";
+import { DEFAULT_FILTERS, activeFilterCount, alertMatches, chipsOf, filterListings, filtersFromQuery, parseQuery, sortListings } from "./search";
 
 test("home example: 206 low-mileage Tehran", () => {
   const p = parseQuery("پژو ۲۰۶ کم‌کارکرد تهران");
@@ -67,4 +67,10 @@ test("regression: price parser skips a mileage clause to find a genuine price cl
 test("activeFilterCount counts non-default filters", () => {
   expect(activeFilterCount(DEFAULT_FILTERS)).toBe(0);
   expect(activeFilterCount({ ...DEFAULT_FILTERS, models: ["206", "tara"], maxKm: 100, onlyBelow: true })).toBe(4);
+});
+test("alertMatches includes a listing priced exactly at the threshold", () => {
+  const threshold = LISTINGS[0].price;
+  expect(alertMatches(LISTINGS, threshold)).toBe(LISTINGS.filter((l) => l.price <= threshold).length);
+  expect(alertMatches([{ ...LISTINGS[0], price: 500 }], 500)).toBe(1);
+  expect(alertMatches([{ ...LISTINGS[0], price: 501 }], 500)).toBe(0);
 });
