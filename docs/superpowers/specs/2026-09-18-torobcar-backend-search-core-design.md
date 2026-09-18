@@ -527,7 +527,32 @@ Dev: `pytest`, `pytest-asyncio`, `pytest-cov`, `ruff`, `black`.
 | LLM latency on first-seen queries | 4 s timeout, rules fallback, 24 h intent cache |
 | SonarQube needs ~3 GB RAM | Separate Compose project, started only for scans |
 
-## 15. Done means
+## 15. Amendments found while planning (2026-09-18)
+
+Writing the plan meant running the design against the real CSV and a real
+Postgres 18. These findings override the sections they name.
+
+| # | Overrides | Change | Evidence |
+|---|---|---|---|
+| A1 | §6.3 | Deal-score slope is **1.0**, not 2.4 | Real `diff_pct` IQR is −10%…+12%; 2.4 pins 25% of scores at the 5/99 clamp, 1.0 pins under 5% |
+| A2 | §6.1, §6.3, §7.3, §9 | New column **`listings.price_suspect`**: `diff_pct < −40` or `> +100`. Suspect listings keep their listed price in the API, but the ranker sees `price = NULL` (neutral, «قیمت توافقی»), they get no `diff_pct` / `deal_score`, and `verdict = unknown` | 6.6% of cars and 22% of motorcycles; e.g. an MVM X55 listed at 10,000,000 toman against a 4-billion estimate. Unguarded, these rank as the best deals and match every budget |
+| A3 | §7.4 | Two tiers order results **ahead of `rank`**: (1) exact matches precede near-misses for every sort, including relevance; (2) listings of the requested model precede listings that only share its brand. `rank` orders listings inside a tier | On the real data, great-deal Peugeot 405s outranked real 206s for a «۲۰۶» query, and a great-deal near-miss outranked a poor-deal exact match |
+| A4 | §6.4 | Upsert batches of **500**, not 1,000 | asyncpg's 32,767 bind-parameter limit; a listing row has ~35 columns |
+| A5 | §3 | `قبل از Y` → `Y − 1` for **every** year (766 rows), and Gregorian years (> 1420) convert with `− 621` | Heavy vehicles use the same phrase with other years |
+| A6 | §6.1 | `cities.name_normalized` added; `vehicle_catalog.brand` / `.model` stored normalised | City lookup and level inference compare normalised tokens |
+| A7 | §7.2 | The resolver tries each mention twice: with and **without the brand** | `word_similarity('سایپا پراید', 'پراید 131 se')` = 0.5 < 0.6, while `'پراید'` alone = 1.0 |
+| A8 | §9 | `GET /search` takes **one** query-parameter model (`SearchParams`) | FastAPI cannot mix a query model with individual `Query()` parameters (422) |
+| A9 | §11 | Tests use `.docker/compose.test.yml` (loopback `127.0.0.1:54329`, tmpfs) | The app's `db` service publishes no host port |
+| A10 | §6.4 | Ingest runs inside the backend container (`.scripts/ingest.sh`) | `db` and `redis` are unreachable from the host |
+| A11 | §10 | Search log line carries `parsed_by`, `cache_hit`, `total`, `duration_ms` only | Ranking takes 7 ms on the real data; stage timings are added when a latency problem needs locating |
+| A12 | §4.3 | Pre-commit file is `.pre-commit-config.yaml` | pre-commit's default name; resolves the `CLAUDE.md` §10 caveat |
+
+Confirmed unchanged: `pg_trgm` handles Persian in `pgvector/pgvector:pg18` («۲۰۶» vs
+`پژو 206 تیپ 2` = 1.0, a typo'd trim = 0.77, unrelated = 0); every dependency installs
+on Python 3.14.6; the full ingest takes 5.7 s for 14,652 rows with 0 rejects and is
+idempotent; estimates cover 83% of cars and 60% of motorcycles.
+
+## 16. Done means
 
 - `docker compose -f .docker/compose.yml up --build` serves the app at `http://localhost`
   through Traefik; no other service publishes a port.
