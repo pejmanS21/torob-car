@@ -21,4 +21,6 @@ repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.0
     hooks:
-      - id: gitleaks
+      # Docker variant: the golang hook builds gitleaks from source, which needs
+      # a Go toolchain downloaded from dl.google.com — unreachable on some networks.
+      - id: gitleaks-docker

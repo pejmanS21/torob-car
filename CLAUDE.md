@@ -515,7 +515,7 @@ repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.0
     hooks:
-      - id: gitleaks
+      - id: gitleaks-docker   # the golang hook needs a Go toolchain from dl.google.com
 ```
 
 Semgrep is intentionally CI-only (heavier); it does not run as a pre-commit hook.
