@@ -22,15 +22,14 @@ dev = [
     "ruff>=0.16.8",
 ]
 
+# No `exclude-newer` cooldown here, deliberately. uv.lock pins every dependency to an
+# exact version and hash, and CI and both Docker stages install with `--frozen`, so
+# nothing is ever resolved fresh — which is the case the rule protects against. The
+# cooldown is also unsatisfiable for this project: pydantic-ai-slim>=2.45.0 is newer
+# than any useful window, and setting it forces a re-resolve that defeats `--frozen`.
+# nosemgrep: package_managers.uv.uv-missing-dependency-cooldown.uv-missing-dependency-cooldown
 [tool.uv]
 package = false
-# Wait out a publication cooldown before resolving a newly released version, so a
-# compromised release has time to be caught and yanked before it reaches a build.
-# A rolling window, not a pinned date: a date would silently freeze resolution until
-# someone remembered to bump it. Needs uv 0.9.17+ — an older uv reports it as a date
-# parse error ("failed to parse year in date"), so run `uv self update` if you see that.
-required-version = ">=0.9.17"
-exclude-newer = "7 days"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

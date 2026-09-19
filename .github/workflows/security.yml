@@ -7,6 +7,9 @@ on:
     - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
 permissions:
   contents: read
+  # gitleaks-action reads the pull request's commits; without this it gets a
+  # 403 "Resource not accessible by integration" on pull_request events.
+  pull-requests: read
 jobs:
   semgrep:
     runs-on: ubuntu-latest
