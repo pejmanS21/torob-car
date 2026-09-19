@@ -124,6 +124,9 @@ class IntentResolver:
             category=intent.category,
             brands=tuple(dict.fromkeys(target.brand for target in targets)),
             text=text,
+            sources=tuple(intent.sources),
+            price_types=tuple(intent.price_types),
+            document_statuses=tuple(intent.document_statuses),
             only_below_market=intent.only_below_market,
             price_floor=intent.price_min
             and round(intent.price_min * (1 - price_slack)),

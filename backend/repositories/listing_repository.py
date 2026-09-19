@@ -4,12 +4,22 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, Select, case, func, literal, null, select, update
+from sqlalchemy import (
+    ColumnElement,
+    Select,
+    case,
+    func,
+    literal,
+    null,
+    or_,
+    select,
+    update,
+)
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from enums import Category
+from enums import Category, DocumentStatus, PriceType, Source
 from models.city import City
 from models.listing import Listing
 from models.vehicle_catalog import VehicleCatalog
@@ -39,6 +49,11 @@ class CandidateFilter:
     category: Category | None = None
     brands: tuple[str, ...] = ()
     text: str | None = None
+    sources: tuple[Source, ...] = ()
+    # Stated on a minority of ads, so these keep rows whose value is NULL: filtering on
+    # them narrows the ads that answered, it never hides the ads that stayed silent.
+    price_types: tuple[PriceType, ...] = ()
+    document_statuses: tuple[DocumentStatus, ...] = ()
     only_below_market: bool = False
     price_floor: int | None = None
     price_ceiling: int | None = None
@@ -92,6 +107,7 @@ class ListingRepository:
             Listing.price,
             Listing.insurance_months,
             Listing.body_condition,
+            Listing.source,  # positional: keep in step with EstimatorInput's fields
         ).outerjoin(VehicleCatalog, Listing.catalog_id == VehicleCatalog.id)
         if category is not None:
             statement = statement.where(Listing.category == category)
@@ -145,6 +161,20 @@ class ListingRepository:
             statement = statement.where(Listing.category == category)
         found = await self._session.execute(statement)
         return {category: total for category, total in found}
+
+    async def count_by_source(
+        self, category: Category | None = None
+    ) -> dict[Source, int]:
+        total = func.count().label("total")
+        statement = (
+            select(Listing.source, total)
+            .group_by(Listing.source)
+            .order_by(total.desc(), Listing.source)
+        )
+        if category is not None:
+            statement = statement.where(Listing.category == category)
+        found = await self._session.execute(statement)
+        return {source: count for source, count in found}
 
     async def count_by_city(
         self, category: Category | None, limit: int
@@ -229,6 +259,22 @@ class ListingRepository:
         ]
         if filters.category is not None:
             conditions.append(Listing.category == filters.category)
+        if filters.sources:
+            conditions.append(Listing.source.in_(filters.sources))
+        if filters.price_types:
+            conditions.append(
+                or_(
+                    Listing.price_type.in_(filters.price_types),
+                    Listing.price_type.is_(None),
+                )
+            )
+        if filters.document_statuses:
+            conditions.append(
+                or_(
+                    Listing.document_status.in_(filters.document_statuses),
+                    Listing.document_status.is_(None),
+                )
+            )
         if filters.brands:
             conditions.append(VehicleCatalog.brand.in_(filters.brands))
         elif filters.text:

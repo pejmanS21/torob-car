@@ -4,13 +4,24 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from enums import BodyCondition, Category, EstimateBasis, Fuel, Gearbox, Verdict
+from enums import (
+    BodyCondition,
+    Category,
+    DocumentStatus,
+    EstimateBasis,
+    Fuel,
+    Gearbox,
+    PriceType,
+    Source,
+    Verdict,
+)
 
 
 class ListingCard(BaseModel):
     id: uuid.UUID
     token: str
     title: str
+    source: Source
     category: Category
     brand: str | None
     model: str | None
@@ -51,5 +62,7 @@ class ListingDetail(ListingCard):
     image_urls: list[str]
     color: str | None
     is_dealer: bool
+    price_type: PriceType | None
+    document_status: DocumentStatus | None
     attributes: dict[str, Any]
     price_breakdown: PriceBreakdown

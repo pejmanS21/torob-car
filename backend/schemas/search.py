@@ -4,7 +4,16 @@ from typing import Self
 from pydantic import BaseModel, Field, PositiveInt, ValidationError, model_validator
 
 from core.text import MIN_JALALI_YEAR, jalali_year
-from enums import Category, Fuel, Gearbox, ParsedBy, SortKey
+from enums import (
+    Category,
+    DocumentStatus,
+    Fuel,
+    Gearbox,
+    ParsedBy,
+    PriceType,
+    SortKey,
+    Source,
+)
 from errors import invalid_search_error
 from schemas.listing import ListingCard
 
@@ -36,6 +45,11 @@ class SearchIntent(BaseModel):
     gearbox: Gearbox | None = None
     fuel: Fuel | None = None
     colors: list[str] = Field(default_factory=list)
+    sources: list[Source] = Field(default_factory=list)
+    # Most ads state neither, so a filter on these keeps the ads that never said
+    # (see CandidateFilter): it narrows the answers, it does not hide the silent.
+    price_types: list[PriceType] = Field(default_factory=list)
+    document_statuses: list[DocumentStatus] = Field(default_factory=list)
     only_below_market: bool = False
     text: str | None = Field(default=None, description="anything not captured above")
     sort: SortKey = SortKey.RELEVANCE
@@ -64,6 +78,9 @@ class SearchOverrides(BaseModel):
     price_max: PositiveInt | None = None
     km_max: PositiveInt | None = None
     gearbox: Gearbox | None = None
+    sources: list[Source] = Field(default_factory=list)
+    price_types: list[PriceType] = Field(default_factory=list)
+    document_statuses: list[DocumentStatus] = Field(default_factory=list)
     only_below: bool | None = None
     sort: SortKey | None = None
 
@@ -76,6 +93,9 @@ class SearchOverrides(BaseModel):
             "price_max": self.price_max,
             "km_max": self.km_max,
             "gearbox": self.gearbox,
+            "sources": self.sources or None,
+            "price_types": self.price_types or None,
+            "document_statuses": self.document_statuses or None,
             "only_below_market": self.only_below,
             "sort": self.sort,
         }

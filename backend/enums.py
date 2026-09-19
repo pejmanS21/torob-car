@@ -38,6 +38,37 @@ class BodyCondition(StrEnum):
     RESTORED = "restored"
 
 
+class Source(StrEnum):
+    """The site an ad was crawled from."""
+
+    DIVAR = "divar"
+    BAMA = "bama"
+    KARNAMEH = "karnameh"
+    HAMRAH_MECHANIC = "hamrah_mechanic"
+
+
+class PriceType(StrEnum):
+    """How the asking price is offered. Unknown on sources that never state it."""
+
+    LUMPSUM = "lumpsum"
+    NEGOTIABLE = "negotiable"
+    INSTALLMENT = "installment"
+
+
+class DocumentStatus(StrEnum):
+    """Title-deed status. Divar reports transfer readiness, Hamrah Mechanic reports the
+    deed's page count — different questions, so their answers stay separate members."""
+
+    TITLE_IN_NAME = "title_in_name"
+    READY_TO_TRANSFER = "ready_to_transfer"
+    WHITE_TITLE = "white_title"
+    NO_TITLE = "no_title"
+    MORTGAGED = "mortgaged"
+    SINGLE_PAGE = "single_page"
+    TWO_PAGE = "two_page"
+    MULTI_PAGE = "multi_page"
+
+
 class EstimateBasis(StrEnum):
     TRIM_YEAR = "trim_year"
     TRIM_NEAR_YEAR = "trim_near_year"

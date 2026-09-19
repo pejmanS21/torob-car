@@ -4,11 +4,14 @@ import { useState } from "react";
 import type { ListingDetail } from "@/lib/api/types";
 import { fa, num } from "@/lib/format";
 import type { CardView } from "@/lib/view";
+import { sourceLabelFromUrl } from "@/lib/url";
 import { useAppState } from "@/state/AppState";
 import { Icon } from "./Icon";
+import { RedirectOverlay } from "./RedirectOverlay";
 import styles from "./PriceCard.module.css";
 
-const DIVAR_REDIRECT_DELAY_MS = 550;
+// Long enough for the interstitial to read as a hand-off rather than a flicker.
+const REDIRECT_DELAY_MS = 1100;
 
 export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardView }) {
   const { compare, saved, toggleCompare, toggleSaved } = useAppState();
@@ -16,7 +19,7 @@ export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardV
   const inCompare = compare.includes(detail.id);
   const isSaved = saved.includes(detail.id);
 
-  const handleDivarClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleSourceClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
@@ -26,7 +29,7 @@ export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardV
     window.setTimeout(() => {
       window.open(detail.url, "_blank", "noopener");
       setOpening(false);
-    }, DIVAR_REDIRECT_DELAY_MS);
+    }, REDIRECT_DELAY_MS);
   };
   const quick = [
     { k: "کارکرد", v: detail.km === null ? "—" : num(detail.km) },
@@ -50,11 +53,18 @@ export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardV
           target="_blank"
           rel="noopener"
           className={styles.divar}
-          onClick={handleDivarClick}
+          onClick={handleSourceClick}
           aria-busy={opening}
         >
           {opening ? <span className={styles.spinner} aria-hidden="true" /> : "مشاهده آگهی"}
         </a>
+        {opening && (
+          <RedirectOverlay
+            sourceLabel={sourceLabelFromUrl(detail.url)}
+            title={card.title}
+            url={detail.url}
+          />
+        )}
         <button
           type="button"
           onClick={() => toggleCompare(detail.id)}

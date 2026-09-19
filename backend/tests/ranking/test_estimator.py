@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from enums import BodyCondition, Category, EstimateBasis
+from enums import BodyCondition, Category, EstimateBasis, Source
 from ranking.estimator import EstimateQuery, EstimatorInput, PriceEstimator
 
 CURRENT_YEAR = 1405
@@ -173,3 +173,22 @@ def test_single_estimate_range_is_the_interquartile_band() -> None:
         )
     )
     assert (single.low, single.est_price, single.high) == (725, 800, 925)
+
+
+def test_premium_sources_are_scored_but_never_set_the_baseline() -> None:
+    # Six ordinary Divar ads at 500M, plus dearer Karnameh ads for the same car.
+    divar = [make_row(500_000_000) for _ in range(6)]
+    karnameh = [
+        make_row(900_000_000, source=Source.KARNAMEH),
+        make_row(950_000_000, source=Source.KARNAMEH),
+    ]
+    estimates = {
+        estimate.listing_id: estimate
+        for estimate in PriceEstimator(divar + karnameh, CURRENT_YEAR).estimate_all()
+    }
+    # The Divar ads still read as fairly priced: premium ads did not lift the median.
+    assert estimates[divar[0].listing_id].est_price == 500_000_000
+    # And the premium ads are scored against that same Divar median, not their own.
+    priced = estimates[karnameh[0].listing_id]
+    assert priced.est_price == 500_000_000
+    assert priced.diff_pct is not None and priced.diff_pct > 0

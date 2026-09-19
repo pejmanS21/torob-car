@@ -25,6 +25,7 @@ def _card_fields(listing: Listing) -> dict[str, object]:
         "id": listing.id,
         "token": listing.token,
         "title": listing.title,
+        "source": listing.source,
         "category": listing.category,
         "brand": catalog.brand if catalog else None,
         "model": catalog.model if catalog else None,
@@ -90,6 +91,8 @@ def to_detail(listing: Listing) -> ListingDetail:
         image_urls=listing.image_urls,
         color=listing.color,
         is_dealer=listing.is_dealer,
+        price_type=listing.price_type,
+        document_status=listing.document_status,
         attributes=listing.attributes,
         price_breakdown=_price_breakdown(listing),
     )

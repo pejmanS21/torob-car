@@ -44,6 +44,12 @@ class FacetService:
             cities=[
                 FacetCount(value=city.name, count=city.listing_count) for city in cities
             ],
+            sources=[
+                FacetCount(value=source.value, count=total)
+                for source, total in (
+                    await self._listings.count_by_source(category)
+                ).items()
+            ],
             model_count=await self._catalog.count_models(category),
             data_as_of=await self._listings.newest_fetched_at(),
         )

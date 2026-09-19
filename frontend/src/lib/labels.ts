@@ -1,10 +1,20 @@
 // Persian names for the API's closed vocabularies (backend/enums.py).
-import type { BodyCondition, Category, EstimateBasis, Fuel, Gearbox, SortKey } from "./api/types";
+import type { BodyCondition, Category, DocumentStatus, EstimateBasis, Fuel, Gearbox, PriceType, Source, SortKey } from "./api/types";
 
 export const CATEGORY_NAMES: Record<Category, string> = {
   light: "سواری و شاسی‌بلند", heavy: "سنگین و نیمه‌سنگین", motorcycle: "موتورسیکلت", rental: "اجاره", classic: "کلاسیک",
 };
 export const GEARBOX_NAMES: Record<Gearbox, string> = { manual: "دنده‌ای", automatic: "اتوماتیک" };
+export const SOURCE_NAMES: Record<Source, string> = {
+  divar: "دیوار", bama: "باما", karnameh: "کارنامه", hamrah_mechanic: "همراه مکانیک",
+};
+export const PRICE_TYPE_NAMES: Record<PriceType, string> = {
+  lumpsum: "نقد", negotiable: "توافقی", installment: "اقساطی",
+};
+export const DOCUMENT_STATUS_NAMES: Record<DocumentStatus, string> = {
+  title_in_name: "سند به نام", ready_to_transfer: "آماده انتقال", white_title: "سند سفید", no_title: "فاقد سند",
+  mortgaged: "سند در رهن", single_page: "سند تک‌برگی", two_page: "سند دو‌برگی", multi_page: "سند چندبرگی",
+};
 export const FUEL_NAMES: Record<Fuel, string> = {
   petrol: "بنزینی", dual_factory: "دوگانه‌سوز شرکتی", dual_aftermarket: "دوگانه‌سوز دستی", hybrid: "هیبرید",
   plugin_hybrid: "پلاگین هیبرید", electric: "برقی", diesel: "گازوئیلی",

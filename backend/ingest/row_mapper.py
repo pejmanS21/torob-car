@@ -8,7 +8,15 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from core.text import normalize_persian
-from enums import BodyCondition, Category, Fuel, Gearbox
+from enums import (
+    BodyCondition,
+    Category,
+    DocumentStatus,
+    Fuel,
+    Gearbox,
+    PriceType,
+    Source,
+)
 from ingest import column_maps as columns
 from ingest import normalizers
 
@@ -29,6 +37,7 @@ class RowRejectedError(Exception):
 class NormalizedListing(BaseModel):
     token: str = Field(min_length=1)
     url: str
+    source: Source
     category: Category
     trim: str | None
     brand: str | None
@@ -46,6 +55,8 @@ class NormalizedListing(BaseModel):
     color: str | None
     body_condition: BodyCondition | None
     insurance_months: int | None
+    price_type: PriceType | None
+    document_status: DocumentStatus | None
     vehicle_type: str | None
     is_dealer: bool
     lat: float | None
@@ -88,6 +99,37 @@ def _gearbox(row: Mapping[str, str]) -> Gearbox | None:
     return None
 
 
+def _source(row: Mapping[str, str]) -> Source:
+    """Divar's export predates the column, so a row without one is a Divar row."""
+    raw = _text(row, columns.SOURCE_COLUMN)
+    if not raw:
+        return Source.DIVAR
+    if raw not in columns.SOURCE_VALUES:
+        raise columns.UnknownValueError(columns.SOURCE_COLUMN, raw)
+    return columns.SOURCE_VALUES[raw]
+
+
+def _price_type(row: Mapping[str, str]) -> PriceType | None:
+    """Sources that name the price type say so; Divar only flags instalments."""
+    raw = _text(row, columns.PRICE_TYPE_COLUMN)
+    if raw:
+        if raw not in columns.PRICE_TYPE_VALUES:
+            raise columns.UnknownValueError(columns.PRICE_TYPE_COLUMN, raw)
+        return columns.PRICE_TYPE_VALUES[raw]
+    offers_installments = any(
+        _text(row, column) == columns.INSTALLMENT_YES
+        for column in columns.INSTALLMENT_COLUMNS
+    )
+    return PriceType.INSTALLMENT if offers_installments else None
+
+
+def _document_status(row: Mapping[str, str]) -> DocumentStatus | None:
+    raw = _text(row, columns.DOCUMENT_COLUMN)
+    if normalize_persian(raw) in columns.UNINFORMATIVE_DOCUMENT_VALUES:
+        return None
+    return columns.lookup_value(raw, columns.DOCUMENT_VALUES, columns.DOCUMENT_COLUMN)
+
+
 def _attributes(row: Mapping[str, str], category: Category) -> dict[str, Any]:
     names = list(columns.ATTRIBUTE_COLUMNS)
     if category is Category.RENTAL:
@@ -127,6 +169,7 @@ def map_row(row: Mapping[str, str]) -> MappedRow:
     listing = NormalizedListing(
         token=_require(row, "token"),
         url=_text(row, "url"),
+        source=_source(row),
         category=category,
         trim=trim,
         brand=brand_model.brand if brand_model else None,
@@ -154,6 +197,8 @@ def map_row(row: Mapping[str, str]) -> MappedRow:
         insurance_months=normalizers.parse_insurance_months(
             _text(row, columns.INSURANCE_COLUMN)
         ),
+        price_type=_price_type(row),
+        document_status=_document_status(row),
         vehicle_type=_optional(row, columns.VEHICLE_TYPE_COLUMN),
         is_dealer=_text(row, columns.BUSINESS_TYPE_COLUMN)
         != columns.PERSONAL_BUSINESS_TYPE,

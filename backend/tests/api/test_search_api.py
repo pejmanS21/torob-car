@@ -147,3 +147,28 @@ async def test_facets_are_scoped_by_category_and_dated(api: AsyncClient) -> None
     assert motorcycles["cities"][0]["count"] <= everything["cities"][0]["count"]
     assert all(m["count"] <= 120 for m in motorcycles["models"])
     assert sum(c["count"] for c in motorcycles["cities"]) == 120
+
+
+async def test_filtering_by_source_keeps_only_that_source(api: AsyncClient) -> None:
+    divar = await search(api, sources="divar", page_size=5)
+    assert divar["total"] > 0
+    assert {item["source"] for item in divar["items"]} == {"divar"}
+    # The fixture is a Divar crawl, so asking for another site is honestly empty.
+    assert (await search(api, sources="bama", page_size=5))["total"] == 0
+
+
+async def test_a_sparse_filter_keeps_listings_that_never_stated_a_value(
+    api: AsyncClient,
+) -> None:
+    # Fixture rows state no deed status. Filtering on one must not hide them all,
+    # otherwise the filter would silently delete most of the market.
+    filtered = await search(api, document_statuses="single_page", page_size=5)
+    assert filtered["total"] > 0
+    assert all(item["source"] == "divar" for item in filtered["items"])
+
+
+async def test_facets_count_listings_per_source(api: AsyncClient) -> None:
+    response = await api.get("/api/v1/facets")
+    assert response.status_code == 200, response.text
+    sources = {item["value"]: item["count"] for item in response.json()["sources"]}
+    assert sources["divar"] > 0

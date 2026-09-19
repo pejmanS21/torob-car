@@ -17,7 +17,16 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base, UUIDPrimaryKeyMixin, enum_type
-from enums import BodyCondition, Category, EstimateBasis, Fuel, Gearbox
+from enums import (
+    BodyCondition,
+    Category,
+    DocumentStatus,
+    EstimateBasis,
+    Fuel,
+    Gearbox,
+    PriceType,
+    Source,
+)
 from models.city import City
 from models.vehicle_catalog import VehicleCatalog
 
@@ -36,6 +45,13 @@ class Listing(UUIDPrimaryKeyMixin, Base):
 
     token: Mapped[str] = mapped_column(String(64), unique=True)
     url: Mapped[str] = mapped_column(Text)
+    # Divar is the default: it is the one source whose CSV predates the source column.
+    source: Mapped[Source] = mapped_column(
+        enum_type(Source),
+        default=Source.DIVAR,
+        server_default=Source.DIVAR.value,
+        index=True,
+    )
     category: Mapped[Category] = mapped_column(enum_type(Category))
     catalog_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("vehicle_catalog.id")
@@ -56,6 +72,12 @@ class Listing(UUIDPrimaryKeyMixin, Base):
         enum_type(BodyCondition)
     )
     insurance_months: Mapped[int | None] = mapped_column(Integer)
+    # Null wherever the source never states it, which is most ads: filters treat null as
+    # "unknown" and keep the listing rather than dropping it.
+    price_type: Mapped[PriceType | None] = mapped_column(enum_type(PriceType))
+    document_status: Mapped[DocumentStatus | None] = mapped_column(
+        enum_type(DocumentStatus)
+    )
     vehicle_type: Mapped[str | None] = mapped_column(String(64))
     is_dealer: Mapped[bool] = mapped_column(Boolean, default=False)
 

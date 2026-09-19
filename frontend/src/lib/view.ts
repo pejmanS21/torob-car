@@ -1,4 +1,4 @@
-import type { ListingCard } from "./api/types";
+import type { ListingCard, Source } from "./api/types";
 import { fa, formatToman, num, relativeTime } from "./format";
 import { BODY_NAMES, GEARBOX_NAMES } from "./labels";
 import { diffText, scoreColor, verdictStyle } from "./pricing";
@@ -7,7 +7,7 @@ import type { VerdictStyle } from "./types";
 export interface CardView {
   id: string; href: string; img: string; title: string; posted: string; meta: string; priceText: string;
   verdict: VerdictStyle; diffText: string; score: number; scoreFa: string; scoreColor: string; body: string; insFa: string;
-  isExact: boolean; nearMissLabels: string[];
+  isExact: boolean; nearMissLabels: string[]; source: Source;
 }
 
 export const PRICE_UNKNOWN = "توافقی";
@@ -28,5 +28,5 @@ export const cardOf = (l: ListingCard, dataAsOf: string | null = null): CardView
   priceText: l.price === null ? PRICE_UNKNOWN : formatToman(l.price), verdict: verdictStyle(l.verdict), diffText: diffText(l.diff_pct),
   score: l.deal_score ?? 0, scoreFa: l.deal_score === null ? "—" : fa(l.deal_score), scoreColor: scoreColor(l.deal_score ?? 0),
   body: l.body_condition ? BODY_NAMES[l.body_condition] : "—", insFa: l.insurance_months === null ? "—" : fa(l.insurance_months),
-  isExact: l.is_exact, nearMissLabels: l.near_miss_labels,
+  isExact: l.is_exact, nearMissLabels: l.near_miss_labels, source: l.source,
 });

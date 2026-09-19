@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 
 from core.phone import PHONE_PLACEHOLDER
-from enums import BodyCondition, Category, EstimateBasis, Fuel, Gearbox
+from enums import BodyCondition, Category, EstimateBasis, Fuel, Gearbox, Source
 from services.listing_views import to_card, to_detail
 
 
@@ -17,6 +17,9 @@ def test_detail_description_masks_phone_numbers() -> None:
         id=uuid.uuid4(),
         token="test-token",
         title="پژو ۲۰۶",
+        source=Source.DIVAR,
+        price_type=None,
+        document_status=None,
         category=Category.LIGHT,
         catalog=types.SimpleNamespace(brand="پژو", model="۲۰۶", trim="تیپ ۲"),
         city=types.SimpleNamespace(name="تهران", lat=35.7, lng=51.4),
@@ -66,6 +69,9 @@ def test_detail_lat_lng_are_none_without_coordinates_while_card_keeps_city() -> 
         id=uuid.uuid4(),
         token="test-token",
         title="پژو ۲۰۶",
+        source=Source.DIVAR,
+        price_type=None,
+        document_status=None,
         category=Category.LIGHT,
         catalog=types.SimpleNamespace(brand="پژو", model="۲۰۶", trim="تیپ ۲"),
         city=types.SimpleNamespace(name="تهران", lat=35.7, lng=51.4),
