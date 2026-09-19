@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ListingDetail } from "@/lib/api/types";
 import { fa, num } from "@/lib/format";
 import type { CardView } from "@/lib/view";
@@ -7,10 +8,26 @@ import { useAppState } from "@/state/AppState";
 import { Icon } from "./Icon";
 import styles from "./PriceCard.module.css";
 
+const DIVAR_REDIRECT_DELAY_MS = 550;
+
 export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardView }) {
   const { compare, saved, toggleCompare, toggleSaved } = useAppState();
+  const [opening, setOpening] = useState(false);
   const inCompare = compare.includes(detail.id);
   const isSaved = saved.includes(detail.id);
+
+  const handleDivarClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    event.preventDefault();
+    if (opening) return;
+    setOpening(true);
+    window.setTimeout(() => {
+      window.open(detail.url, "_blank", "noopener");
+      setOpening(false);
+    }, DIVAR_REDIRECT_DELAY_MS);
+  };
   const quick = [
     { k: "کارکرد", v: detail.km === null ? "—" : num(detail.km) },
     { k: "مدل (سال تولید)", v: detail.year === null ? "—" : fa(detail.year) },
@@ -28,8 +45,15 @@ export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardV
         {card.priceText}{detail.price !== null && <span className={styles.unit}> تومان</span>}
       </div>
       <div className={styles.actions}>
-        <a href={detail.url} target="_blank" rel="noopener" className={styles.divar}>
-          مشاهده در دیوار
+        <a
+          href={detail.url}
+          target="_blank"
+          rel="noopener"
+          className={styles.divar}
+          onClick={handleDivarClick}
+          aria-busy={opening}
+        >
+          {opening ? <span className={styles.spinner} aria-hidden="true" /> : "مشاهده آگهی"}
         </a>
         <button
           type="button"
