@@ -5,6 +5,7 @@ import type { BodyCondition, CatalogSuggestion, Category, ModelStats } from "@/l
 import { useApi } from "@/lib/api/useApi";
 import { fa } from "@/lib/format";
 import { BODY_CONDITION_CATEGORIES, BODY_NAMES, CATEGORY_NAMES } from "@/lib/labels";
+import { Icon } from "./Icon";
 import styles from "./EstimateForm.module.css";
 
 export interface EstimateInput {
@@ -44,9 +45,12 @@ export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Pro
       <div className={styles.fields}>
         <label className={styles.field}>
           دسته
-          <select className={styles.select} value={input.category} onChange={(event) => { clearTrim(); setTyped(""); onChange({ category: event.target.value as Category, bodyCondition: null }); }}>
-            {ESTIMATED_CATEGORIES.map((category) => <option key={category} value={category}>{CATEGORY_NAMES[category]}</option>)}
-          </select>
+          <span className={styles.selectWrap}>
+            <select className={styles.select} value={input.category} onChange={(event) => { clearTrim(); setTyped(""); onChange({ category: event.target.value as Category, bodyCondition: null }); }}>
+              {ESTIMATED_CATEGORIES.map((category) => <option key={category} value={category}>{CATEGORY_NAMES[category]}</option>)}
+            </select>
+            <Icon name="chevronDown" stroke="#667085" className={styles.selectChev} />
+          </span>
         </label>
         <label className={styles.field}>
           برند و مدل
@@ -63,10 +67,13 @@ export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Pro
         </label>
         <label className={styles.field}>
           سال ساخت
-          <select className={styles.select} value={input.year ?? ""} disabled={!years.length} onChange={(event) => onChange({ year: event.target.value ? Number(event.target.value) : null })}>
-            <option value="">{stats.loading ? "…" : input.trim ? "انتخاب کن" : "اول مدل رو انتخاب کن"}</option>
-            {years.map((year) => <option key={year} value={year}>{fa(year)}</option>)}
-          </select>
+          <span className={styles.selectWrap}>
+            <select className={styles.select} value={input.year ?? ""} disabled={!years.length} onChange={(event) => onChange({ year: event.target.value ? Number(event.target.value) : null })}>
+              <option value="">{stats.loading ? "…" : input.trim ? "انتخاب کن" : "اول مدل رو انتخاب کن"}</option>
+              {years.map((year) => <option key={year} value={year}>{fa(year)}</option>)}
+            </select>
+            <Icon name="chevronDown" stroke="#667085" className={styles.selectChev} />
+          </span>
         </label>
         <label className={styles.field}>
           <span className={styles.kmHead}>
@@ -85,10 +92,13 @@ export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Pro
         {showBody && (
           <label className={styles.field}>
             وضعیت بدنه
-            <select className={styles.select} value={input.bodyCondition ?? ""} onChange={(event) => onChange({ bodyCondition: (event.target.value || null) as BodyCondition | null })}>
-              <option value="">نامشخص</option>
-              {BODY_CONDITIONS.map((body) => <option key={body} value={body}>{BODY_NAMES[body]}</option>)}
-            </select>
+            <span className={styles.selectWrap}>
+              <select className={styles.select} value={input.bodyCondition ?? ""} onChange={(event) => onChange({ bodyCondition: (event.target.value || null) as BodyCondition | null })}>
+                <option value="">نامشخص</option>
+                {BODY_CONDITIONS.map((body) => <option key={body} value={body}>{BODY_NAMES[body]}</option>)}
+              </select>
+              <Icon name="chevronDown" stroke="#667085" className={styles.selectChev} />
+            </span>
           </label>
         )}
         <label className={styles.field}>

@@ -3,6 +3,7 @@ import type { Category, Facets, Gearbox } from "@/lib/api/types";
 import { fa, formatToman } from "@/lib/format";
 import { CATEGORY_NAMES, CATEGORY_ORDER, GEARBOX_NAMES } from "@/lib/labels";
 import type { SearchOverrides } from "@/lib/search";
+import { Icon } from "./Icon";
 import styles from "./FiltersPanel.module.css";
 
 const MILLION = 1_000_000;
@@ -48,22 +49,31 @@ export function FiltersPanel({ params, facets, onChange, onReset, open, onClose,
           <div className={styles.label}>شهر</div>
           <div className={styles.cities}>{cities.map((city) => <button key={city} className={styles.pill} data-on={params.cities?.includes(city) ?? false} aria-pressed={params.cities?.includes(city) ?? false} onClick={() => set({ cities: toggle(params.cities, city) })}>{city} <span className={styles.count}>{fa(countOf(facets?.cities, city))}</span></button>)}</div>
           <label className={styles.label}>حداکثر قیمت
-            <select className={styles.select} value={params.price_max ?? ""} onChange={(e) => set({ price_max: e.target.value ? Number(e.target.value) : undefined })} aria-label="حداکثر قیمت">
-              <option value="">بدون سقف</option>
-              {PRICE_CAPS.map((cap) => <option key={cap} value={cap}>{formatToman(cap)}</option>)}
-            </select>
+            <span className={styles.selectWrap}>
+              <select className={styles.select} value={params.price_max ?? ""} onChange={(e) => set({ price_max: e.target.value ? Number(e.target.value) : undefined })} aria-label="حداکثر قیمت">
+                <option value="">بدون سقف</option>
+                {PRICE_CAPS.map((cap) => <option key={cap} value={cap}>{formatToman(cap)}</option>)}
+              </select>
+              <Icon name="chevronDown" stroke="#667085" className={styles.selectChev} />
+            </span>
           </label>
           <label className={styles.label}>حداکثر کارکرد
-            <select className={styles.select} value={params.km_max ?? ""} onChange={(e) => set({ km_max: e.target.value ? Number(e.target.value) : undefined })} aria-label="حداکثر کارکرد">
-              <option value="">بدون سقف</option>
-              {KM_CAPS.map((cap) => <option key={cap} value={cap}>{fa(cap / 1000)} هزار کیلومتر</option>)}
-            </select>
+            <span className={styles.selectWrap}>
+              <select className={styles.select} value={params.km_max ?? ""} onChange={(e) => set({ km_max: e.target.value ? Number(e.target.value) : undefined })} aria-label="حداکثر کارکرد">
+                <option value="">بدون سقف</option>
+                {KM_CAPS.map((cap) => <option key={cap} value={cap}>{fa(cap / 1000)} هزار کیلومتر</option>)}
+              </select>
+              <Icon name="chevronDown" stroke="#667085" className={styles.selectChev} />
+            </span>
           </label>
           <label className={styles.label}>مدل (سال)
-            <select className={styles.select} value={params.year ?? ""} onChange={(e) => set({ year: e.target.value ? Number(e.target.value) : undefined })} aria-label="سال">
-              <option value="">همهٔ سال‌ها</option>
-              {YEARS.map((year) => <option key={year} value={year}>{fa(year)}</option>)}
-            </select>
+            <span className={styles.selectWrap}>
+              <select className={styles.select} value={params.year ?? ""} onChange={(e) => set({ year: e.target.value ? Number(e.target.value) : undefined })} aria-label="سال">
+                <option value="">همهٔ سال‌ها</option>
+                {YEARS.map((year) => <option key={year} value={year}>{fa(year)}</option>)}
+              </select>
+              <Icon name="chevronDown" stroke="#667085" className={styles.selectChev} />
+            </span>
           </label>
           {showGearbox && (
             <>
