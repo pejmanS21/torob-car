@@ -1,0 +1,42 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--ink-2);
+  white-space: pre-line;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.crumb {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--fill);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.crumb:hover {
+  background: var(--line);
+}

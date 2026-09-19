@@ -1,0 +1,124 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.headRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.posted {
+  font-size: 11px;
+  color: var(--faint);
+  white-space: nowrap;
+  margin-top: 6px;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.price {
+  margin-top: 14px;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.divar {
+  flex: 1;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--red);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.divar:hover {
+  background: var(--red-dark);
+  color: #fff;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.compare {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.bookmark {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+}
+
+.quick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.quickItem {
+  text-align: center;
+  border-inline-start: 1px solid var(--line-soft);
+  padding: 2px 6px;
+}
+
+.quickKey {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.quickVal {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 4px;
+}

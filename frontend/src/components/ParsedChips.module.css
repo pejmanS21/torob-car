@@ -1,0 +1,28 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.chip {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--red-soft);
+  color: var(--red-ink);
+  font-weight: 600;
+  font-size: 12px;
+}
+.hint { font-size: 11px; color: var(--faint); margin-inline-start: auto; }

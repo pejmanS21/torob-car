@@ -1,0 +1,25 @@
+// Persian names for the API's closed vocabularies (backend/enums.py).
+import type { BodyCondition, Category, EstimateBasis, Fuel, Gearbox, SortKey } from "./api/types";
+
+export const CATEGORY_NAMES: Record<Category, string> = {
+  light: "سواری و شاسی‌بلند", heavy: "سنگین و نیمه‌سنگین", motorcycle: "موتورسیکلت", rental: "اجاره", classic: "کلاسیک",
+};
+export const GEARBOX_NAMES: Record<Gearbox, string> = { manual: "دنده‌ای", automatic: "اتوماتیک" };
+export const FUEL_NAMES: Record<Fuel, string> = {
+  petrol: "بنزینی", dual_factory: "دوگانه‌سوز شرکتی", dual_aftermarket: "دوگانه‌سوز دستی", hybrid: "هیبرید",
+  plugin_hybrid: "پلاگین هیبرید", electric: "برقی", diesel: "گازوئیلی",
+};
+export const BODY_NAMES: Record<BodyCondition, string> = {
+  intact: "سالم و بی‌خط و خش", no_paint: "بدون رنگ", minor_scratches: "خط و خش جزئی", partial_paint: "رنگ‌شدگی جزئی",
+  heavy_paint: "رنگ‌شدگی زیاد", dropped: "زمین‌خوردگی", accident: "تصادفی", original: "فابریک", restored: "بازسازی‌شدهٔ کامل",
+};
+export const BASIS_NAMES: Record<EstimateBasis, string> = {
+  trim_year: "همین تیپ و سال", trim_near_year: "همین تیپ، سال‌های مجاور", model_year: "همین مدل و سال",
+  model_near_year: "همین مدل، سال‌های مجاور", none: "بدون تخمین",
+};
+export const SORT_NAMES: Record<SortKey, string> = {
+  relevance: "مرتبط‌ترین", deal: "بهترین ارزش خرید", price: "ارزان‌ترین", km: "کم‌کارکردترین", newest: "جدیدترین",
+};
+/** Categories whose listings carry a body-condition field on Divar. */
+export const BODY_CONDITION_CATEGORIES: Category[] = ["motorcycle", "heavy"];
+export const CATEGORY_ORDER: Category[] = ["light", "motorcycle", "heavy", "classic", "rental"];

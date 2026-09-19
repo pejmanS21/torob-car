@@ -1,0 +1,53 @@
+[project]
+name = "torobcar-backend"
+version = "0.1.0"
+description = "Torobcar search API"
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.20.0",
+    "asyncpg>=0.31.0",
+    "fastapi[standard]>=0.141.1",
+    "pydantic-ai-slim[google,openai]>=2.45.0",
+    "pydantic-settings>=2.15.0",
+    "redis>=8.1.0",
+    "sqlalchemy[asyncio]>=2.0.54",
+]
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.8",
+]
+
+# No `exclude-newer` cooldown here, deliberately. uv.lock pins every dependency to an
+# exact version and hash, and CI and both Docker stages install with `--frozen`, so
+# nothing is ever resolved fresh — which is the case the rule protects against. The
+# cooldown is also unsatisfiable for this project: pydantic-ai-slim>=2.45.0 is newer
+# than any useful window, and setting it forces a re-resolve that defeats `--frozen`.
+# nosemgrep: package_managers.uv.uv-missing-dependency-cooldown.uv-missing-dependency-cooldown
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = ["db: needs the Postgres test database (.docker/compose.test.yml)"]
+
+[tool.coverage.run]
+omit = ["tests/*", "db/migrations/*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py314"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+extend-exclude = ["db/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM"]

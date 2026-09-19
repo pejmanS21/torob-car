@@ -1,0 +1,126 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.lead {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.selectWrap {
+  position: relative;
+  display: block;
+  margin-top: 6px;
+}
+
+.select {
+  display: block;
+  width: 100%;
+  margin-top: 0;
+  height: 42px;
+  padding-inline-start: 12px;
+  padding-inline-end: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-size: 14px;
+  color: var(--ink);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.selectChev {
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  pointer-events: none;
+}
+
+.kmHead {
+  display: flex;
+  justify-content: space-between;
+}
+
+.kmHead b {
+  color: var(--ink);
+}
+
+.range {
+  width: 100%;
+  accent-color: var(--red);
+  margin-top: 8px;
+}
+
+.gears {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.gear {
+  flex: 1;
+  height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+}
+
+.gear[data-on="true"] {
+  border-color: var(--red);
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
+
+.askingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.asking {
+  flex: 1;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink);
+  text-align: right;
+}
+
+.askingRow span {
+  font-size: 13px;
+}
+.suggestions { list-style: none; margin: 6px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 240px; overflow: auto; }
+.suggestion { display: flex; justify-content: space-between; width: 100%; padding: 8px 10px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); text-align: start; cursor: pointer; }
+.suggestion:hover { background: var(--fill); }
+.count, .hint { font-size: 11px; color: var(--muted); }
+.submit { margin-top: 4px; padding: 12px; border: 0; border-radius: 12px; background: var(--red); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.submit:disabled { opacity: .5; cursor: default; }

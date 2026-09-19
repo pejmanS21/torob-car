@@ -1,0 +1,82 @@
+name: torobcar
+services:
+  traefik:
+    image: traefik:v3
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports: ["80:80"] # the ONLY published port
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
+    depends_on: [backend, frontend]
+
+  backend:
+    build: { context: .., dockerfile: .docker/backend.Dockerfile }
+    image: pejmans21/torobcar-backend
+    env_file: ../.env
+    expose: ["8000"] # internal only — no host mapping
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.backend.loadbalancer.server.port=8000
+      # Explicit priorities: Traefik's default (rule length) would rank the long
+      # `api` rule above `api-search`, and the rate limit would never apply.
+      - traefik.http.routers.api-search.rule=PathPrefix(`/api/v1/search`)
+      - traefik.http.routers.api-search.priority=100
+      - traefik.http.routers.api-search.entrypoints=web
+      - traefik.http.routers.api-search.service=backend
+      - traefik.http.routers.api-search.middlewares=search-ratelimit
+      - traefik.http.middlewares.search-ratelimit.ratelimit.average=10
+      - traefik.http.middlewares.search-ratelimit.ratelimit.burst=20
+      # LLM-backed and estimator routes: tighter limit, same explicit priority tier.
+      - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`)
+      - traefik.http.routers.api-assistant.priority=100
+      - traefik.http.routers.api-assistant.entrypoints=web
+      - traefik.http.routers.api-assistant.service=backend
+      - traefik.http.routers.api-assistant.middlewares=assistant-ratelimit
+      - traefik.http.middlewares.assistant-ratelimit.ratelimit.average=5
+      - traefik.http.middlewares.assistant-ratelimit.ratelimit.burst=10
+      - traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/health`)
+      - traefik.http.routers.api.priority=50
+      - traefik.http.routers.api.entrypoints=web
+      - traefik.http.routers.api.service=backend
+
+  frontend:
+    build: { context: .., dockerfile: .docker/frontend.Dockerfile }
+    image: pejmans21/torobcar-frontend
+    env_file: ../.env
+    expose: ["3000"] # internal only — no host mapping
+    depends_on: [backend]
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.frontend.loadbalancer.server.port=3000
+      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.priority=1
+      - traefik.http.routers.frontend.entrypoints=web
+
+  db:
+    image: pgvector/pgvector:pg18
+    env_file: ../.env
+    expose: ["5432"] # internal only — no host mapping
+    # Postgres 18 image moved PGDATA; mount the PARENT dir, NOT .../data
+    volumes: ["pgdata:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--save", "", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    expose: ["6379"] # internal only — cache, no persistence
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

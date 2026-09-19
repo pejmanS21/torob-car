@@ -21,7 +21,8 @@
 - Listing photos are Divar CDN URLs rendered as CSS `background-image`; do not use `next/image`.
 - No service worker, no API client, no LLM call, no use of `assets/*.csv`.
 - All user-facing copy is Persian, copied verbatim from the prototype. Numbers shown to users go through `fa()`/`num()`.
-- Conventional commits, each ending with `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+- Conventional commits, each ending with `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`.
+- `git add` explicit paths only — never `git add -A`/`.` (the repo has untracked `prototype/` and a large CSV in `assets/` that must stay untracked).
 - A task is done only when `bun test`, `bun run lint`, and `bunx tsc --noEmit` pass.
 
 ## Porting Convention (applies to every UI task)

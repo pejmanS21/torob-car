@@ -1,0 +1,30 @@
+name: security
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+permissions:
+  contents: read
+  # gitleaks-action reads the pull request's commits; without this it gets a
+  # 403 "Resource not accessible by integration" on pull_request events.
+  pull-requests: read
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: semgrep ci
+        env:
+          SEMGREP_RULES: "p/default p/python p/security-audit"
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          # Required since gitleaks-action v2 to scan pull requests.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

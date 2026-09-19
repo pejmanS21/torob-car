@@ -1,0 +1,32 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.note {
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.val {
+  font-weight: 600;
+  white-space: nowrap;
+}

@@ -1,0 +1,2 @@
+.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid #f5c2c7; background: var(--red-soft); color: var(--red-ink); border-radius: 12px; font-size: 13px; }
+.retry { border: 1px solid var(--red); background: var(--surface); color: var(--red-ink); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }

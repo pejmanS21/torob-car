@@ -1,0 +1,2 @@
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 90; animation: tk-pop .15s ease-out; box-shadow: 0 8px 24px rgba(0,0,0,.2); white-space: nowrap; }
+@media (max-width: 767px) { .toast { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px); } }
