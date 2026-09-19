@@ -24,6 +24,13 @@ dev = [
 
 [tool.uv]
 package = false
+# Wait out a publication cooldown before resolving a newly released version, so a
+# compromised release has time to be caught and yanked before it reaches a build.
+# A rolling window, not a pinned date: a date would silently freeze resolution until
+# someone remembered to bump it. Needs uv 0.9.17+ — an older uv reports it as a date
+# parse error ("failed to parse year in date"), so run `uv self update` if you see that.
+required-version = ">=0.9.17"
+exclude-newer = "7 days"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

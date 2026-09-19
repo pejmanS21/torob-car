@@ -885,7 +885,15 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # required to scan pull requests
 ```
+
+> **Action pinning.** Every `uses:` in the real workflow files is pinned to a commit
+> SHA with the version in a trailing comment — Semgrep's
+> `github-actions-mutable-action-tag` rule blocks mutable tags like `@v4`. The snippets
+> in this file show the plain tags for readability; take the SHAs from
+> `.github/workflows/`, and re-pin there (not here) when upgrading an action.
 
 A finding from either scanner fails the workflow. Treat secret leaks as urgent:
 rotate the credential immediately, then purge it from history — fixing the file
