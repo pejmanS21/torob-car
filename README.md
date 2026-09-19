@@ -54,7 +54,7 @@ full architecture and conventions.
 ```bash
 ./.scripts/setup.sh                          # install backend + frontend deps
 ./.scripts/dev.sh                             # bring up the full stack
-./.scripts/ingest.sh assets/<csv>             # load a Divar CSV into the database
+./.scripts/ingest.sh assets/<csv>             # load a crawl CSV (divar, bama, karnameh, hamrah-mechanic)
 ```
 
 ### API (`/api/v1`)
