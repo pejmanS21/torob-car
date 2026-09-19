@@ -1,6 +1,23 @@
 # Handoff — Torobcar
 
-_Last updated: 2026-09-19_
+_Last updated: 2026-09-20_
+
+## 0. Latest work (branch `feat/multi-source-and-ux`)
+
+Pushed to GitHub, no pull request open yet.
+
+- **Three new sources ingested**: Bama, Karnameh and Hamrah Mechanic, 300 ads each, on
+  top of Divar's 14,652 — 15,552 in the database.
+- **New filters**: source, price type (نقد/توافقی/اقساطی) and deed status (8 values across
+  two vocabularies). Price type and deed status are sparse, so filtering on them still
+  shows ads that never stated a value.
+- **Divar remains the price baseline** (`ranking/estimator.py`, `_is_baseline`): the
+  inspected marketplaces sell at a premium, so they are scored but never set the median.
+- **Three fixes**: the model page 404'd because the route param was double-encoded; the
+  not-found button's label went red on red on hover; outbound ad links now show a
+  redirect interstitial naming the destination.
+
+Checks: backend 241 tests, frontend 33, ruff/black/tsc/lint clean, smoke passed.
 
 ## 1. Goal
 
