@@ -5,4 +5,5 @@ export interface VerdictStyle { label: string; color: string; bg: string; icon: 
 export interface BreakdownRow { label: string; note: string; val: string; color: string; }
 
 export interface ChatMessage { role: "user" | "assistant"; text: string; listings: ListingCard[]; }
-export interface PriceAlert { title: string; params: SearchParams; threshold: number; }
+/** `id` is present once the server has stored the alert; an optimistic one has none yet. */
+export interface PriceAlert { id?: string; title: string; params: SearchParams; threshold: number; }

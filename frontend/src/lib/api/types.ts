@@ -103,3 +103,12 @@ export interface AssistantRequest { messages: AssistantMessage[]; compare_ids: s
 export interface AssistantResponse { text: string; listings: ListingCard[]; answered_by: ParsedBy; }
 
 export interface ApiErrorBody { error: { code: string; message: string; details: unknown }; }
+
+/** Mirrors backend `schemas/auth.py` and `schemas/account.py`. */
+export type UserRole = "user" | "admin";
+export interface UserRead { id: string; email: string; role: UserRole; created_at: string; }
+export interface AuthRequest { email: string; password: string; }
+export interface PriceAlertCreate { title: string; threshold: number; params: SearchParams; }
+export interface PriceAlertRead extends PriceAlertCreate { id: string; created_at: string; }
+export interface ImportRequest { saved: string[]; alerts: PriceAlertCreate[]; }
+export interface AccountState { saved: string[]; alerts: PriceAlertRead[]; }
