@@ -4,10 +4,12 @@ from fastapi import APIRouter
 
 from api.v1.endpoints import (
     assistant,
+    auth,
     catalog,
     estimates,
     facets,
     listings,
+    me,
     models,
     search,
 )
@@ -20,3 +22,5 @@ router.include_router(models.router)
 router.include_router(catalog.router)
 router.include_router(estimates.router)
 router.include_router(assistant.router)
+router.include_router(auth.router)
+router.include_router(me.router)

@@ -3,14 +3,17 @@
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Cookie, Depends
 from pydantic_ai import Agent
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.cache import Cache
 from core.config import Settings, get_settings
+from core.security import ACCESS_COOKIE, TokenClaims, decode_token
 from db.session import get_session
+from enums import TokenType
+from errors import NotAuthenticatedError
 from llm.assistant_agent import AssistantDeps, AssistantReply, build_assistant_agent
 from llm.intent_agent import build_intent_agent
 from llm.model_factory import build_model
@@ -19,8 +22,14 @@ from repositories.catalog_repository import CatalogRepository
 from repositories.city_repository import CityRepository
 from repositories.health_repository import HealthRepository
 from repositories.listing_repository import ListingRepository
+from repositories.price_alert_repository import PriceAlertRepository
+from repositories.saved_listing_repository import SavedListingRepository
+from repositories.user_repository import UserRepository
+from schemas.auth import UserRead
 from schemas.search import SearchIntent
+from services.account_service import AccountService
 from services.assistant_service import AssistantService
+from services.auth_service import AuthService
 from services.catalog_service import CatalogService
 from services.estimate_service import EstimateService
 from services.facet_service import FacetService
@@ -146,3 +155,37 @@ def get_catalog_service(session: SessionDep) -> CatalogService:
 
 def get_health_repository(session: SessionDep) -> HealthRepository:
     return HealthRepository(session)
+
+
+def get_auth_service(session: SessionDep, settings: SettingsDep) -> AuthService:
+    return AuthService(UserRepository(session), settings)
+
+
+def get_account_service(session: SessionDep) -> AccountService:
+    return AccountService(
+        SavedListingRepository(session),
+        PriceAlertRepository(session),
+        ListingRepository(session),
+    )
+
+
+def get_current_user(
+    settings: SettingsDep,
+    access_token: Annotated[str | None, Cookie(alias=ACCESS_COOKIE)] = None,
+) -> TokenClaims:
+    """Trusts the signed token alone — no database hit. A disabled user is therefore
+    locked out at their next refresh (≤ 15 min), not instantly; see `require_admin`."""
+    if access_token is None:
+        raise NotAuthenticatedError()
+    secret = settings.jwt_secret.get_secret_value()
+    return decode_token(access_token, secret, TokenType.ACCESS)
+
+
+CurrentUserDep = Annotated[TokenClaims, Depends(get_current_user)]
+
+
+async def require_admin(
+    current: CurrentUserDep,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+) -> UserRead:
+    return await service.require_admin(current.user_id)

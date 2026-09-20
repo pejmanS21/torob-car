@@ -18,7 +18,7 @@ from main import create_app
 from repositories.catalog_repository import CatalogRepository
 from repositories.city_repository import CityRepository
 from repositories.listing_repository import ListingRepository
-from tests.support import DictCache
+from tests.support import DictCache, fast_auth_settings
 
 models.ALLOW_MODEL_REQUESTS = False  # tests must never reach a real LLM
 
@@ -98,6 +98,7 @@ async def api(
     app.dependency_overrides[get_cache] = lambda: cache
     app.dependency_overrides[get_intent_agent] = lambda: None
     app.dependency_overrides[get_assistant_agent] = lambda: None
+    app.dependency_overrides[get_settings] = fast_auth_settings
     transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as http:
         yield http
