@@ -47,3 +47,20 @@ async def test_primary_keys_are_generated_app_side(session: AsyncSession) -> Non
     session.add(city)
     await session.flush()
     assert city.id.version == 8
+
+
+@pytest.mark.db
+async def test_account_tables_exist_with_their_constraints(
+    session: AsyncSession,
+) -> None:
+    rows = await session.execute(
+        text(
+            "SELECT conrelid::regclass::text, conname FROM pg_constraint "
+            "WHERE conrelid::regclass::text IN "
+            "('users', 'saved_listings', 'price_alerts')"
+        )
+    )
+    constraints = {(table, name) for table, name in rows}
+    assert ("users", "users_email_key") in constraints
+    assert ("saved_listings", "uq_saved_listings_user_listing") in constraints
+    assert ("price_alerts", "price_alerts_user_id_fkey") in constraints
