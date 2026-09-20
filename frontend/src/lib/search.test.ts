@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import type { SearchParams } from "./api/types";
 import { activeFilterCount, paramsToQuery, queryToParams } from "./search";
 
 test("queryToParams keeps valid values and drops junk", () => {
@@ -21,4 +22,19 @@ test("paramsToQuery round-trips and omits defaults", () => {
 test("activeFilterCount counts every set filter", () => {
   expect(activeFilterCount({})).toBe(0);
   expect(activeFilterCount({ q: "x", models: ["a", "b"], km_max: 100000, only_below: true, category: "light" })).toBe(5);
+  expect(activeFilterCount({ sources: ["divar", "bama"], price_types: ["lumpsum"], document_statuses: ["no_title"] })).toBe(4);
+});
+
+test("sources/price_types/document_statuses round-trip and drop junk values", () => {
+  const query = new URLSearchParams(
+    "sources=divar&sources=bama&sources=ebay&price_types=lumpsum&price_types=cash&document_statuses=no_title&document_statuses=single_page&document_statuses=lost",
+  );
+  expect(queryToParams(query)).toEqual({
+    sources: ["divar", "bama"], price_types: ["lumpsum"], document_statuses: ["no_title", "single_page"],
+  });
+  const params: SearchParams = { sources: ["karnameh", "hamrah_mechanic"], price_types: ["installment"], document_statuses: ["white_title"] };
+  const roundTripped = queryToParams(new URLSearchParams(paramsToQuery(params)));
+  expect(roundTripped).toEqual({
+    sources: ["karnameh", "hamrah_mechanic"], price_types: ["installment"], document_statuses: ["white_title"],
+  });
 });

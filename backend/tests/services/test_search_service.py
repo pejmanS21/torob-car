@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from enums import Category, EstimateBasis, ParsedBy
+from enums import Category, EstimateBasis, ParsedBy, Source
 from errors import InvalidSearchError, ListingNotFoundError
 from ranking.ranker import ListingRanker
 from ranking.types import Candidate, RankingQuery
@@ -27,6 +27,7 @@ def make_listing(listing_id: uuid.UUID) -> SimpleNamespace:
         id=listing_id,
         token=f"tok{listing_id.int}",
         title="پژو ۲۰۶",
+        source=Source.DIVAR,
         category=Category.LIGHT,
         catalog=None,
         city=SimpleNamespace(name="تهران", lat=35.7, lng=51.4),

@@ -550,6 +550,12 @@
       "count": 1
     }
   ],
+  "sources": [
+    {
+      "value": "divar",
+      "count": 617
+    }
+  ],
   "model_count": 69,
   "data_as_of": "2026-09-17T16:43:20Z"
 }

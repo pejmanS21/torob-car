@@ -34,3 +34,10 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+/* Without this the global `a:hover { color: var(--red) }` beats `.cta`'s white and the label
+   goes red on red. Same pattern as every other primary button: darken, keep the text white. */
+.cta:hover {
+  background: var(--red-dark);
+  color: #fff;
+}

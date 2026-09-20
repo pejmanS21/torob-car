@@ -21,6 +21,12 @@ This is a **monolith fullstack** application kept in a single repository:
 - **Delivery** — Dockerized, orchestrated with Compose, shipped via GitHub Actions
   to Docker Hub.
 
+Ads come from four crawled sources — Divar, Bama, Karnameh and Hamrah Mechanic. Each
+listing records its `source`, and search can filter by it. **Divar alone sets the price
+baseline**: the inspected-and-warranted marketplaces sell at a premium, so letting them
+into the median would re-price every Divar ad against their markup. Every ad is still
+scored, just against Divar (`ranking/estimator.py`, `_is_baseline`).
+
 The backend exposes a versioned REST API (`/api/v1`) that the frontend is designed
 to consume; the frontend renders only what the API returns (no synthetic data)
 (Spec 3). Traefik routes `/api` (and `/health`) to the backend and everything else to
@@ -253,7 +259,7 @@ semgrep ci                   # Run Semgrep with the project ruleset
 ./.scripts/dev.sh            # Start the dev stack
 ./.scripts/lint.sh           # Run all linters/formatters
 ./.scripts/test-db.sh        # Start the throwaway Postgres that `uv run pytest` needs
-./.scripts/ingest.sh <csv>   # Load a Divar CSV (runs inside the backend container)
+./.scripts/ingest.sh <csv>   # Load a crawl CSV (runs inside the backend container)
 ./.scripts/sonar.sh          # Coverage + local SonarQube scan (needs SONAR_TOKEN)
 ./.scripts/smoke.sh          # agent-browser acceptance run against the running stack
 ```

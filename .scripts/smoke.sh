@@ -53,7 +53,7 @@ LISTING="$(first_href "a[href^='/listing/']")"
 [[ -n "$LISTING" ]] || { echo "FAIL: no listing link"; exit 1; }
 "${AB[@]}" open "$BASE_URL$LISTING"
 "${AB[@]}" wait --load networkidle
-expect_text "مشاهده در دیوار" "price card links to Divar"
+expect_text "مشاهده آگهی" "price card links to the source ad"
 expect_text "مشخصات" "specs grid"
 expect_text "آگهی‌های مشابه" "similar listings"
 expect_text "متن آگهی فروشنده" "seller text"

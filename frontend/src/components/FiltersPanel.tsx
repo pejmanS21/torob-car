@@ -1,8 +1,8 @@
 "use client";
-import type { Category, Facets, Gearbox } from "@/lib/api/types";
+import type { Category, DocumentStatus, Facets, Gearbox, PriceType, Source } from "@/lib/api/types";
 import { fa, formatToman } from "@/lib/format";
-import { CATEGORY_NAMES, CATEGORY_ORDER, GEARBOX_NAMES } from "@/lib/labels";
-import type { SearchOverrides } from "@/lib/search";
+import { CATEGORY_NAMES, CATEGORY_ORDER, DOCUMENT_STATUS_NAMES, GEARBOX_NAMES, PRICE_TYPE_NAMES, SOURCE_NAMES } from "@/lib/labels";
+import { DOCUMENT_STATUSES, PRICE_TYPES, type SearchOverrides } from "@/lib/search";
 import { Icon } from "./Icon";
 import styles from "./FiltersPanel.module.css";
 
@@ -24,6 +24,7 @@ export function FiltersPanel({ params, facets, onChange, onReset, open, onClose,
   const set = (patch: Partial<SearchOverrides>) => onChange({ ...params, ...patch });
   const models = [...new Set([...(params.models ?? []), ...(facets?.models.slice(0, MAX_ITEMS).map((m) => m.model) ?? [])])];
   const cities = [...new Set([...(params.cities ?? []), ...(facets?.cities.slice(0, TOP_CITIES).map((c) => c.value) ?? [])])];
+  const sources = [...new Set([...(params.sources ?? []), ...(facets?.sources.slice(0, MAX_ITEMS).map((s) => s.value as Source) ?? [])])];
   const countOf = (list: { model?: string; value?: string; count: number }[] | undefined, name: string): string =>
     list?.find((item) => (item.model ?? item.value) === name)?.count.toString() ?? "";
   const showGearbox = !params.category || params.category === "light";
@@ -48,6 +49,12 @@ export function FiltersPanel({ params, facets, onChange, onReset, open, onClose,
           ))}</div>
           <div className={styles.label}>شهر</div>
           <div className={styles.cities}>{cities.map((city) => <button key={city} className={styles.pill} data-on={params.cities?.includes(city) ?? false} aria-pressed={params.cities?.includes(city) ?? false} onClick={() => set({ cities: toggle(params.cities, city) })}>{city} <span className={styles.count}>{fa(countOf(facets?.cities, city))}</span></button>)}</div>
+          <div className={styles.label}>فروشگاه</div>
+          <div className={styles.cities}>{sources.map((source) => (
+            <button key={source} className={styles.pill} data-on={params.sources?.includes(source) ?? false} aria-pressed={params.sources?.includes(source) ?? false} onClick={() => set({ sources: toggle(params.sources, source) as Source[] | undefined })}>
+              {SOURCE_NAMES[source]} <span className={styles.count}>{fa(countOf(facets?.sources, source))}</span>
+            </button>
+          ))}</div>
           <label className={styles.label}>حداکثر قیمت
             <span className={styles.selectWrap}>
               <select className={styles.select} value={params.price_max ?? ""} onChange={(e) => set({ price_max: e.target.value ? Number(e.target.value) : undefined })} aria-label="حداکثر قیمت">
@@ -84,6 +91,20 @@ export function FiltersPanel({ params, facets, onChange, onReset, open, onClose,
               </div>
             </>
           )}
+          <div className={styles.label}>نوع قیمت</div>
+          <div className={styles.cities}>{PRICE_TYPES.map((priceType) => (
+            <button key={priceType} className={styles.pill} data-on={params.price_types?.includes(priceType) ?? false} aria-pressed={params.price_types?.includes(priceType) ?? false} onClick={() => set({ price_types: toggle(params.price_types, priceType) as PriceType[] | undefined })}>
+              {PRICE_TYPE_NAMES[priceType]}
+            </button>
+          ))}</div>
+          <div className={styles.hint}>آگهی‌های بدون این اطلاعات هم نمایش داده می‌شوند</div>
+          <div className={styles.label}>سند</div>
+          <div className={styles.cities}>{DOCUMENT_STATUSES.map((status) => (
+            <button key={status} className={styles.pill} data-on={params.document_statuses?.includes(status) ?? false} aria-pressed={params.document_statuses?.includes(status) ?? false} onClick={() => set({ document_statuses: toggle(params.document_statuses, status) as DocumentStatus[] | undefined })}>
+              {DOCUMENT_STATUS_NAMES[status]}
+            </button>
+          ))}</div>
+          <div className={styles.hint}>آگهی‌های بدون این اطلاعات هم نمایش داده می‌شوند</div>
           <label className={`${styles.check} ${styles.onlyBelow}`}><input type="checkbox" checked={params.only_below ?? false} onChange={() => set({ only_below: params.only_below ? undefined : true })} />فقط ارزان‌تر از بازار</label>
           <button className={styles.deskReset} onClick={onReset}>پاک‌کردن فیلترها</button>
         </div>

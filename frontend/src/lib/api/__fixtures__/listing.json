@@ -2,6 +2,7 @@
   "id": "01a0b5d6-99cb-8108-8c29-d1e016b3b26b",
   "token": "gany4J5L",
   "title": "پژو 206 فوری  مدل 84شاسی سالم",
+  "source": "divar",
   "category": "light",
   "brand": "پژو",
   "model": "پژو 206",
@@ -33,6 +34,8 @@
   ],
   "color": "نقره‌ای",
   "is_dealer": false,
+  "price_type": null,
+  "document_status": null,
   "attributes": {
     "مالکیت خودرو": "مالک خودرو هستم"
   },

@@ -1,0 +1,128 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  animation: tk-fade 160ms ease-out;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  width: min(380px, 100%);
+  padding: 28px 24px 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #eef1f5 100%);
+  box-shadow: 0 18px 50px rgba(23, 32, 51, 0.16);
+  text-align: center;
+  animation: tk-pop 200ms ease-out;
+}
+
+/* Rotating ring inside a fixed badge — the spinner from the reference recording. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--red-soft);
+}
+
+.badgeRing {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--red);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: tk-spin 700ms linear infinite;
+}
+
+.lead {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.source {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.title {
+  margin: 6px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Bobbing mascot: the car hovers while the ad loads. */
+.car {
+  display: block;
+  width: 96px;
+  height: auto;
+  margin: 18px auto 0;
+  animation: tk-bob 900ms ease-in-out infinite;
+}
+
+.fallback {
+  display: inline-block;
+  margin: 14px 0 22px;
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration: underline;
+}
+
+.fallback:hover {
+  color: var(--red);
+}
+
+/* Footer bar that fills while the new tab opens. */
+.progress {
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: 0;
+  height: 26px;
+  width: 100%;
+  background: #7f90ad;
+  transform-origin: right center;
+  animation: tk-progress 1100ms ease-out forwards;
+}
+
+@keyframes tk-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes tk-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes tk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes tk-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .card,
+  .badgeRing,
+  .car,
+  .progress {
+    animation: none;
+  }
+}

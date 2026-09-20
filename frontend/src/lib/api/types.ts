@@ -2,6 +2,11 @@
 // Money is integer toman; years are Jalali; dates are ISO strings.
 
 export type Category = "light" | "heavy" | "motorcycle" | "rental" | "classic";
+export type Source = "divar" | "bama" | "karnameh" | "hamrah_mechanic";
+export type PriceType = "lumpsum" | "negotiable" | "installment";
+export type DocumentStatus =
+  | "title_in_name" | "ready_to_transfer" | "white_title" | "no_title" | "mortgaged" // Divar vocabulary
+  | "single_page" | "two_page" | "multi_page"; // Hamrah Mechanic vocabulary
 export type Gearbox = "manual" | "automatic";
 export type Fuel = "petrol" | "dual_factory" | "dual_aftermarket" | "hybrid" | "plugin_hybrid" | "electric" | "diesel";
 export type BodyCondition =
@@ -13,7 +18,7 @@ export type ParsedBy = "llm" | "rules";
 export type ChatRole = "user" | "assistant";
 
 export interface ListingCard {
-  id: string; token: string; title: string; category: Category;
+  id: string; token: string; title: string; category: Category; source: Source;
   brand: string | null; model: string | null; trim: string | null;
   year: number | null; km: number | null; price: number | null;
   city: string; district: string | null; lat: number | null; lng: number | null;
@@ -31,6 +36,7 @@ export interface PriceBreakdown {
 export interface ListingDetail extends ListingCard {
   url: string; description: string; image_urls: string[]; color: string | null; is_dealer: boolean;
   attributes: Record<string, string>; price_breakdown: PriceBreakdown;
+  price_type: PriceType | null; document_status: DocumentStatus | null;
 }
 
 export interface VehicleMention { brand: string | null; model: string | null; trim: string | null; }
@@ -50,12 +56,14 @@ export interface SearchResponse {
 export interface SearchParams {
   q?: string; category?: Category; models?: string[]; cities?: string[]; year?: number;
   price_max?: number; km_max?: number; gearbox?: Gearbox; only_below?: boolean; sort?: SortKey; page?: number; page_size?: number;
+  sources?: Source[]; price_types?: PriceType[]; document_statuses?: DocumentStatus[];
 }
 
 export interface FacetCount { value: string; count: number; }
 export interface ModelFacet { brand: string; model: string; count: number; }
 export interface Facets {
-  categories: Partial<Record<Category, number>>; models: ModelFacet[]; cities: FacetCount[]; model_count: number; data_as_of: string | null;
+  categories: Partial<Record<Category, number>>; models: ModelFacet[]; cities: FacetCount[]; sources: FacetCount[];
+  model_count: number; data_as_of: string | null;
 }
 
 export interface HistogramBucket { low: number; high: number; count: number; }

@@ -1,6 +1,14 @@
 import pytest
 
-from enums import BodyCondition, Category, Fuel, Gearbox
+from enums import (
+    BodyCondition,
+    Category,
+    DocumentStatus,
+    Fuel,
+    Gearbox,
+    PriceType,
+    Source,
+)
 from ingest.column_maps import UnknownValueError
 from ingest.row_mapper import NULLED_KM, NULLED_PRICE, RowRejectedError, map_row
 
@@ -112,3 +120,49 @@ def test_unknown_vocabulary_value_aborts_loudly() -> None:
     with pytest.raises(UnknownValueError) as error:
         map_row(row(**{"نوع سوخت": "هیدروژن"}))
     assert error.value.context == {"column": "نوع سوخت", "value": "هیدروژن"}
+
+
+def test_a_row_without_a_source_column_is_divar() -> None:
+    # The Divar export predates the column, so its absence is not an unknown source.
+    assert map_row(BASE_ROW).listing.source is Source.DIVAR
+
+
+def test_maps_the_source_column_of_the_newer_crawls() -> None:
+    mapped = map_row(row(source="hamrah-mechanic"))
+    assert mapped.listing.source is Source.HAMRAH_MECHANIC
+
+
+def test_an_unrecognised_source_aborts_the_run() -> None:
+    with pytest.raises(UnknownValueError):
+        map_row(row(source="cardealer"))
+
+
+def test_reads_the_price_type_stated_by_the_source() -> None:
+    mapped = map_row(row(source="bama", price_type_raw="negotiable"))
+    assert mapped.listing.price_type is PriceType.NEGOTIABLE
+
+
+def test_divar_instalment_flag_becomes_a_price_type() -> None:
+    # Divar states no price type; it only flags that instalments are on offer.
+    assert map_row(row(**{"فروش قسطی": "دارد"})).listing.price_type is (
+        PriceType.INSTALLMENT
+    )
+
+
+def test_price_type_is_unknown_when_nobody_states_one() -> None:
+    assert map_row(BASE_ROW).listing.price_type is None
+
+
+def test_maps_both_document_vocabularies() -> None:
+    divar = map_row(row(**{"وضعیت سند و مدارک": "سند در رهن"})).listing
+    hamrah = map_row(
+        row(source="hamrah-mechanic", **{"وضعیت سند و مدارک": "تک برگی"})
+    ).listing
+    assert (divar.document_status, hamrah.document_status) == (
+        DocumentStatus.MORTGAGED,
+        DocumentStatus.SINGLE_PAGE,
+    )
+
+
+def test_an_uninformative_document_value_is_recorded_as_unknown() -> None:
+    assert map_row(row(**{"وضعیت سند و مدارک": "سایر"})).listing.document_status is None

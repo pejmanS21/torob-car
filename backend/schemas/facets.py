@@ -20,5 +20,6 @@ class Facets(BaseModel):
     categories: dict[Category, int]
     models: list[ModelFacet]
     cities: list[FacetCount]
+    sources: list[FacetCount]
     model_count: int
     data_as_of: datetime | None

@@ -6,7 +6,15 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from core.text import normalize_persian
-from enums import BodyCondition, Category, Fuel, Gearbox
+from enums import (
+    BodyCondition,
+    Category,
+    DocumentStatus,
+    Fuel,
+    Gearbox,
+    PriceType,
+    Source,
+)
 from errors import IngestError
 
 CATEGORY_LEVEL_3 = "webengage_cat_3"
@@ -23,6 +31,12 @@ GEARBOX_COLUMNS = ("گیربکس", "نوع گیربکس")
 BUSINESS_TYPE_COLUMN = "webengage_business_type"
 PERSONAL_BUSINESS_TYPE = "personal"
 RENT_PRICE_COLUMN = "price_raw"
+SOURCE_COLUMN = "source"
+PRICE_TYPE_COLUMN = "price_type_raw"
+DOCUMENT_COLUMN = "وضعیت سند و مدارک"
+# Divar has no price-type column; it flags instalments with these two yes/no columns.
+INSTALLMENT_COLUMNS = ("فروش قسطی", "امکان خرید قسطی")
+INSTALLMENT_YES = "دارد"
 
 ATTRIBUTE_COLUMNS: tuple[str, ...] = (
     "حجم موتور", "نوع استارت", "نوع کلاچ", "مالکیت خودرو", "مایل به معاوضه",
@@ -68,6 +82,35 @@ FUEL_VALUES: Mapping[str, Fuel] = {
     "برق": Fuel.ELECTRIC,
     "گازوئیل": Fuel.DIESEL,
 }
+SOURCE_VALUES: Mapping[str, Source] = {
+    "divar": Source.DIVAR,
+    "bama": Source.BAMA,
+    "karnameh": Source.KARNAMEH,
+    "hamrah-mechanic": Source.HAMRAH_MECHANIC,
+}
+PRICE_TYPE_VALUES: Mapping[str, PriceType] = {
+    "lumpsum": PriceType.LUMPSUM,
+    "negotiable": PriceType.NEGOTIABLE,
+    "installment": PriceType.INSTALLMENT,
+}
+DOCUMENT_VALUES: Mapping[str, DocumentStatus] = {
+    # Divar answers "can this be transferred?"…
+    "سند به نام (آماده انتقال)": DocumentStatus.TITLE_IN_NAME,
+    "آماده انتقال": DocumentStatus.READY_TO_TRANSFER,
+    "کامل و آماده انتقال": DocumentStatus.READY_TO_TRANSFER,
+    "سند سفید": DocumentStatus.WHITE_TITLE,
+    "فاقد سند/اوراقی": DocumentStatus.NO_TITLE,
+    "اوراقی": DocumentStatus.NO_TITLE,
+    "سند در رهن": DocumentStatus.MORTGAGED,
+    "در رهن": DocumentStatus.MORTGAGED,
+    # …while Hamrah Mechanic answers "how many pages is the deed?".
+    "تک برگی": DocumentStatus.SINGLE_PAGE,
+    "دو برگی": DocumentStatus.TWO_PAGE,
+    "چند برگی": DocumentStatus.MULTI_PAGE,
+}
+# Stated, but says nothing: recorded as unknown rather than invented into a member.
+UNINFORMATIVE_DOCUMENT_VALUES = frozenset({"سایر"})
+
 BODY_VALUES: Mapping[str, BodyCondition] = {
     "کاملا سالم": BodyCondition.INTACT,
     "بدون رنگ": BodyCondition.NO_PAINT,

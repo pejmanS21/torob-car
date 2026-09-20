@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SOURCE_NAMES } from "@/lib/labels";
 import type { CardView } from "@/lib/view";
 import { ScoreBar } from "./ScoreBar";
 import { VerdictBadge } from "./VerdictBadge";
@@ -13,7 +14,7 @@ export function ListingCard({ card }: { card: CardView }) {
       </div>
       <div className={styles.body}>
         <div className={styles.titleRow}><span className={styles.title}>{card.title}</span><span className={styles.posted}>{card.posted}</span></div>
-        <div className={styles.meta}>{card.meta}</div>
+        <div className={styles.meta}>{card.meta} <span className={styles.source}>· {SOURCE_NAMES[card.source]}</span></div>
         <div className={styles.priceRow}>
           <span className={styles.price}>{card.priceText}</span>
           <span className={styles.diff} style={{ color: card.verdict.color }}>{card.diffText}</span>

@@ -10,7 +10,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
-from enums import BodyCondition, Category, EstimateBasis
+from enums import BodyCondition, Category, EstimateBasis, Source
 
 MIN_COMPARABLES = 5
 NEAR_YEAR_SPAN = 1
@@ -67,6 +67,7 @@ class EstimatorInput:
     price: int | None
     insurance_months: int | None
     body_condition: BodyCondition | None
+    source: Source = Source.DIVAR
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +112,14 @@ def _clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
+def _is_baseline(row: EstimatorInput) -> bool:
+    """Divar is the market: it is the deepest, most ordinary pool of private ads.
+    The inspected-and-warranted marketplaces sell at a premium, so letting them set
+    the baseline would quietly re-price every Divar listing against their markup.
+    Ads from every source are still scored — they are just scored against Divar."""
+    return _is_comparable(row) and row.source is Source.DIVAR
+
+
 def _is_comparable(row: EstimatorInput) -> bool:
     return (
         row.category in ESTIMATED_CATEGORIES
@@ -143,7 +152,7 @@ class PriceEstimator:
         self._by_trim: dict[GroupKey, list[int]] = defaultdict(list)
         self._by_model: dict[GroupKey, list[int]] = defaultdict(list)
         self._expected_km = self._build_expected_km(rows)
-        for row in filter(_is_comparable, rows):
+        for row in filter(_is_baseline, rows):
             self._by_trim[(row.category, row.trim, row.year)].append(row.price)
             self._by_model[(row.category, row.model, row.year)].append(row.price)
 
@@ -268,7 +277,10 @@ class PriceEstimator:
             return None, EstimateBasis.NONE, 0
         for groups, name, span, basis in self._attempts(row.trim, row.model):
             prices = self._collect(groups, row.category, name, row.year, span)
-            prices.remove(row.price)  # leave-one-out: a listing never validates itself
+            if _is_baseline(row):
+                # Leave-one-out: a listing never validates itself. Only rows that fed
+                # the baseline are in there to remove.
+                prices.remove(row.price)
             if len(prices) >= MIN_COMPARABLES:
                 return statistics.median(prices), basis, len(prices)
         return None, EstimateBasis.NONE, 0

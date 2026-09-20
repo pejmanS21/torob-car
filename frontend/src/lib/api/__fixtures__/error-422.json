@@ -20,6 +20,9 @@
             "gearbox": null,
             "fuel": null,
             "colors": [],
+            "sources": [],
+            "price_types": [],
+            "document_statuses": [],
             "only_below_market": false,
             "text": null,
             "sort": "relevance"

@@ -8,7 +8,7 @@ from pydantic_ai import ModelMessage, ModelResponse, ToolCallPart, ToolReturnPar
 from pydantic_ai.exceptions import ModelAPIError
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from enums import Category, ChatRole, ParsedBy, Verdict
+from enums import Category, ChatRole, ParsedBy, Source, Verdict
 from llm.assistant_agent import build_assistant_agent
 from ranking.types import RankedListing
 from schemas.assistant import AssistantMessage, AssistantRequest
@@ -28,6 +28,7 @@ def make_card(listing_id: uuid.UUID, price: int, deal_score: int | None) -> List
         id=listing_id,
         token=f"tok{listing_id.int}",
         title=f"پژو ۲۰۶ شمارهٔ {listing_id.int}",
+        source=Source.DIVAR,
         category=Category.LIGHT,
         brand="پژو",
         model="پژو 206",
