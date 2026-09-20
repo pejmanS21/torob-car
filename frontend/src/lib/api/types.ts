@@ -43,7 +43,7 @@ export interface VehicleMention { brand: string | null; model: string | null; tr
 
 export interface SearchIntent {
   category: Category | null; vehicles: VehicleMention[]; year_min: number | null; year_max: number | null;
-  price_min: number | null; price_max: number | null; km_max: number | null; cities: string[];
+  price_min: number | null; price_max: number | null; km_min: number | null; km_max: number | null; cities: string[];
   gearbox: Gearbox | null; fuel: Fuel | null; colors: string[]; only_below_market: boolean; text: string | null; sort: SortKey;
 }
 export interface IntentRead extends SearchIntent { chips: string[]; }
@@ -54,15 +54,27 @@ export interface SearchResponse {
 
 /** Query parameters of GET /search (backend `SearchParams`). Arrays repeat the key. */
 export interface SearchParams {
-  q?: string; category?: Category; models?: string[]; cities?: string[]; year?: number;
-  price_max?: number; km_max?: number; gearbox?: Gearbox; only_below?: boolean; sort?: SortKey; page?: number; page_size?: number;
+  q?: string; category?: Category; models?: string[]; cities?: string[]; year_min?: number; year_max?: number;
+  price_min?: number; price_max?: number; km_min?: number; km_max?: number; gearbox?: Gearbox; only_below?: boolean; sort?: SortKey; page?: number; page_size?: number;
   sources?: Source[]; price_types?: PriceType[]; document_statuses?: DocumentStatus[];
 }
 
 export interface FacetCount { value: string; count: number; }
 export interface ModelFacet { brand: string; model: string; count: number; }
+/** What the current search can still reach — hints for the range inputs. */
+export interface FacetRanges {
+  price_min: number | null; price_max: number | null; km_min: number | null; km_max: number | null;
+  year_min: number | null; year_max: number | null;
+}
+/** Every filter in force, typed into the query or ticked, in the panel's own vocabulary. */
+export interface AppliedFilters {
+  category: Category | null; models: string[]; cities: string[]; gearbox: Gearbox | null; sources: Source[];
+  price_types: PriceType[]; document_statuses: DocumentStatus[]; price_min: number | null; price_max: number | null;
+  km_min: number | null; km_max: number | null; year_min: number | null; year_max: number | null; only_below_market: boolean;
+}
 export interface Facets {
   categories: Partial<Record<Category, number>>; models: ModelFacet[]; cities: FacetCount[]; sources: FacetCount[];
+  gearboxes: FacetCount[]; ranges: FacetRanges; applied: AppliedFilters;
   model_count: number; data_as_of: string | null;
 }
 

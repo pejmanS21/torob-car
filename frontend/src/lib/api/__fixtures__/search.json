@@ -12,6 +12,7 @@
     "year_max": null,
     "price_min": null,
     "price_max": null,
+    "km_min": null,
     "km_max": null,
     "cities": [
       "تهران"

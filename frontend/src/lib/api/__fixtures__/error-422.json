@@ -15,6 +15,7 @@
             "year_max": 1200,
             "price_min": null,
             "price_max": null,
+            "km_min": null,
             "km_max": null,
             "cities": [],
             "gearbox": null,

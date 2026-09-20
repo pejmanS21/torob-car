@@ -32,11 +32,12 @@ const medianPrice = (items: ListingCardData[]): number => {
 
 interface Props {
   params: SearchParams;
+  facets: Facets | null;
   sheetOpen: boolean;
   onSheetOpenChange: (open: boolean) => void;
 }
 
-export function ResultsScreen({ params, sheetOpen, onSheetOpenChange }: Props) {
+export function ResultsScreen({ params, facets, sheetOpen, onSheetOpenChange }: Props) {
   const router = useRouter();
   const { addAlert } = useAppState();
   const [more, setMore] = useState<ListingCardData[]>([]);
@@ -45,7 +46,6 @@ export function ResultsScreen({ params, sheetOpen, onSheetOpenChange }: Props) {
 
   const query = paramsToQuery(params);
   const search = useApi(`search${query}`, (signal) => apiGet<SearchResponse>("/search", { ...params, page: 1, page_size: DEFAULT_PAGE_SIZE }, signal));
-  const facets = useApi(`facets:${params.category ?? ""}`, (signal) => apiGet<Facets>("/facets", { category: params.category }, signal));
 
   const items = [...(search.data?.items ?? []), ...more];
   const modelsInResults = uniqueModels(items);
@@ -60,7 +60,7 @@ export function ResultsScreen({ params, sheetOpen, onSheetOpenChange }: Props) {
   const nearMisses = items.filter((l) => !l.is_exact);
   const total = search.data?.total ?? 0;
   const hasMore = total > items.length;
-  const dataAsOf = facets.data?.data_as_of ?? null;
+  const dataAsOf = facets?.data_as_of ?? null;
 
   async function loadMore() {
     if (!search.data || loadingMore) return;
@@ -99,7 +99,7 @@ export function ResultsScreen({ params, sheetOpen, onSheetOpenChange }: Props) {
 
   return (
     <section className={styles.layout}>
-      <FiltersPanel params={params} facets={facets.data} onChange={navigate} onReset={() => navigate(params.q ? { q: params.q } : {})} open={sheetOpen} onClose={() => onSheetOpenChange(false)} resultCount={search.data ? total : null} />
+      <FiltersPanel params={params} facets={facets} onChange={navigate} onReset={() => navigate(params.q ? { q: params.q } : {})} open={sheetOpen} onClose={() => onSheetOpenChange(false)} resultCount={search.data ? total : null} />
       <div className={styles.main}>
         {search.data && search.data.intent.chips.length > 0 && (
           <ParsedChips chips={search.data.intent.chips} hint={search.data.parsed_by === "rules" ? RULES_HINT : undefined} />

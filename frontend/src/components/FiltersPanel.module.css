@@ -2,17 +2,18 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px 16px 6px;
   position: sticky;
   top: 84px;
+  /* Taller than the window once a few groups are open: scroll inside, stay sticky. */
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 
 .sheetHead {
   display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin: -6px 0 14px;
+  justify-content: center;
+  margin: -2px 0 10px;
 }
 
 .grabber {
@@ -22,43 +23,142 @@
   background: var(--line-strong);
 }
 
-.sheetTitleRow {
+.head {
   display: flex;
   align-items: center;
-  width: 100%;
+  margin-bottom: 10px;
 }
 
-.sheetTitle {
-  font-size: 16px;
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
   font-weight: 700;
+}
+
+.badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
 }
 
 .clear {
   margin-inline-start: auto;
   border: 0;
   background: transparent;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--red);
   font-weight: 600;
+  cursor: pointer;
 }
 
-.deskHead {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 14px;
+/* Ticked filters, each one tap to remove. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
-.label {
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--red-soft);
+  color: var(--red-ink);
   font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 8px;
+  cursor: pointer;
 }
 
-.models {
+.chip span {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switchRow input,
+.check input[type="checkbox"] {
+  accent-color: var(--red);
+}
+
+.section {
+  border-top: 1px solid var(--line-soft);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 0;
+  list-style: none;
+  cursor: pointer;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* What is chosen inside, so a closed group still says what it is doing. */
+.summaryValue {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--red-ink);
+  font-size: 12px;
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chev {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  transition: transform 0.15s;
+}
+
+.summaryValue + .chev {
+  margin-inline-start: 0;
+}
+
+.section[open] .chev {
+  transform: rotate(180deg);
+}
+
+.sectionBody {
+  padding-bottom: 12px;
+}
+
+.checks {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 7px;
 }
 
 .check {
@@ -69,99 +169,109 @@
   cursor: pointer;
 }
 
-.check input[type="checkbox"] {
-  accent-color: var(--red);
-}
-
 .count {
   margin-inline-start: auto;
   color: var(--faint);
-  font-size: 12px;
+  font-size: 11px;
 }
 
-.cities {
+.pills {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 16px;
 }
 
 .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: 30px;
-  padding: 0 12px;
+  padding: 0 11px;
   border-radius: 999px;
   font-size: 12px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink-2);
+  cursor: pointer;
 }
 
-.rangeHead {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 6px;
+.pill .count {
+  margin-inline-start: 0;
 }
 
-.rangeHead b {
-  color: var(--ink);
-}
-
-.range {
-  width: 100%;
-  accent-color: var(--red);
-  margin-bottom: 16px;
-}
-
-.gears {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.gear {
-  flex: 1;
-  height: 32px;
-  border-radius: 8px;
-  font-size: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink-2);
-}
-
-.pill[data-on="true"],
-.gear[data-on="true"] {
+.pill[data-on="true"] {
   border-color: var(--red);
   background: var(--red-soft);
   color: var(--red-ink);
 }
 
-.hint {
-  font-size: 11px;
+.pill[data-on="true"] .count {
+  color: var(--red-ink);
+  opacity: 0.7;
+}
+
+.pill[data-empty="true"] {
+  opacity: 0.45;
+}
+
+/* Understood from the query text rather than ticked here: same "on" state, marked. */
+.pill[data-implied="true"] {
+  border-style: dashed;
+}
+
+.pill[data-implied="true"]::before,
+.check[data-implied="true"] .count::before {
+  content: "✦";
+  font-size: 9px;
+  color: var(--red);
+}
+
+.check[data-implied="true"] .count::before {
+  margin-inline-end: 6px;
+}
+
+.check[data-implied="true"] {
+  font-weight: 600;
+}
+
+.more {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rangeDash {
   color: var(--faint);
-  margin: -10px 0 16px;
+  font-size: 12px;
 }
 
-.onlyBelow {
-  padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.deskReset {
-  margin-top: 14px;
-  width: 100%;
-  height: 34px;
+.select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
   border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--surface);
+  font: inherit;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ink);
 }
 
-.deskReset:hover {
-  color: var(--red);
-  border-color: var(--red);
+.hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--faint);
 }
 
 .sheetFoot {
@@ -222,19 +332,17 @@
     flex-shrink: 0;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
-  .deskHead,
-  .deskReset {
-    display: none;
-  }
   .backdrop {
     display: block;
     position: fixed;
   }
-  .panel label,
-  .panel button {
+  /* Touch targets. */
+  .pill,
+  .select {
+    min-height: 38px;
+  }
+  .check,
+  .summary {
     min-height: 40px;
   }
 }
-.selectWrap { position: relative; display: block; margin-top: 6px; }
-.select { display: block; width: 100%; margin-top: 0; padding-block: 8px; padding-inline-start: 10px; padding-inline-end: 32px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font: inherit; font-size: 13px; color: var(--ink); appearance: none; -webkit-appearance: none; }
-.selectChev { position: absolute; left: 10px; top: 0; bottom: 0; margin: auto 0; pointer-events: none; }

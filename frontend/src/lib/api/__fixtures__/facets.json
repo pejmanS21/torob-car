@@ -1,10 +1,10 @@
 {
   "categories": {
-    "heavy": 60,
-    "rental": 8,
     "light": 420,
+    "motorcycle": 120,
+    "heavy": 60,
     "classic": 9,
-    "motorcycle": 120
+    "rental": 8
   },
   "models": [
     {
@@ -556,6 +556,40 @@
       "count": 617
     }
   ],
+  "gearboxes": [
+    {
+      "value": "manual",
+      "count": 438
+    },
+    {
+      "value": "automatic",
+      "count": 15
+    }
+  ],
+  "ranges": {
+    "price_min": 10000000,
+    "price_max": 20000000000,
+    "km_min": 0,
+    "km_max": 873000,
+    "year_min": 1357,
+    "year_max": 1405
+  },
+  "applied": {
+    "category": null,
+    "models": [],
+    "cities": [],
+    "gearbox": null,
+    "sources": [],
+    "price_types": [],
+    "document_statuses": [],
+    "price_min": null,
+    "price_max": null,
+    "km_min": null,
+    "km_max": null,
+    "year_min": null,
+    "year_max": null,
+    "only_below_market": false
+  },
   "model_count": 69,
   "data_as_of": "2026-09-17T16:43:20Z"
 }

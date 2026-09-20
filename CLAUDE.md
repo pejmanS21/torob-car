@@ -435,6 +435,11 @@ class UUIDPrimaryKeyMixin:
   `apiPost`, `useApi`); `base.ts` is the only place the `/api/v1` prefix and
   `API_INTERNAL_URL` are known. Every fetch is `cache: "no-store"`.
 - `src/lib/api/types.ts` mirrors `backend/schemas/*.py` by hand — change both together.
+- The filter panel follows the search: `GET /facets` takes the same parameters as
+  `GET /search` and counts each option within everything else that was asked, leaving
+  its own filter out. Its `applied` block says which filters are in force — including
+  those the query text implied — so the panel highlights them in place (marked ✦).
+  Counts are yes/no (exact bounds, hard model/city/gearbox), unlike soft ranking.
 - The UI never invents data: loading skeletons, the backend's 422 message inline, and
   «سرویس جست‌وجو در دسترس نیست» with retry for everything else. Branch on
   `ApiError.code`/`status`, never on message text.

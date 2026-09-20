@@ -5,7 +5,7 @@ import { activeFilterCount, paramsToQuery, queryToParams } from "./search";
 test("queryToParams keeps valid values and drops junk", () => {
   const query = new URLSearchParams("q=۲۰۶&category=light&models=پژو 206&models=دنا&cities=تهران&year=1398&price_max=900000000&km_max=abc&gearbox=auto&only_below=true&sort=price&page=3");
   expect(queryToParams(query)).toEqual({
-    q: "۲۰۶", category: "light", models: ["پژو 206", "دنا"], cities: ["تهران"], year: 1398, price_max: 900000000, only_below: true, sort: "price",
+    q: "۲۰۶", category: "light", models: ["پژو 206", "دنا"], cities: ["تهران"], year_min: 1398, year_max: 1398, price_max: 900000000, only_below: true, sort: "price",
   });
   expect(queryToParams(new URLSearchParams("category=spaceship&sort=random&year=-5"))).toEqual({});
 });
@@ -37,4 +37,12 @@ test("sources/price_types/document_statuses round-trip and drop junk values", ()
   expect(roundTripped).toEqual({
     sources: ["karnameh", "hamrah_mechanic"], price_types: ["installment"], document_statuses: ["white_title"],
   });
+});
+
+test("ranges round-trip through the URL, and a range counts as one filter", () => {
+  const params = { q: "۲۰۶", price_min: 300_000_000, price_max: 900_000_000, km_min: 50_000, year_min: 1395, year_max: 1400 };
+  expect(queryToParams(new URLSearchParams(paramsToQuery(params)))).toEqual(params);
+  expect(activeFilterCount(params)).toBe(3);
+  // An explicit bound wins over the legacy single `year`.
+  expect(queryToParams(new URLSearchParams("year=1398&year_min=1390"))).toEqual({ year_min: 1390, year_max: 1398 });
 });

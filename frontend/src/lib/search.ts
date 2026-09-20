@@ -25,15 +25,17 @@ const positive = (v: string | null): number | undefined => (v && /^\d+$/.test(v)
 export type SearchOverrides = Omit<SearchParams, "page" | "page_size">;
 
 export const activeFilterCount = (o: SearchOverrides): number =>
-  (o.category ? 1 : 0) + (o.models?.length ?? 0) + (o.cities?.length ?? 0) + (o.year ? 1 : 0) + (o.price_max ? 1 : 0) +
-  (o.km_max ? 1 : 0) + (o.gearbox ? 1 : 0) + (o.only_below ? 1 : 0) +
+  (o.category ? 1 : 0) + (o.models?.length ?? 0) + (o.cities?.length ?? 0) +
+  // A range is one filter, whether one end is set or both.
+  (o.year_min || o.year_max ? 1 : 0) + (o.price_min || o.price_max ? 1 : 0) + (o.km_min || o.km_max ? 1 : 0) + (o.gearbox ? 1 : 0) + (o.only_below ? 1 : 0) +
   (o.sources?.length ?? 0) + (o.price_types?.length ?? 0) + (o.document_statuses?.length ?? 0);
 
 /** SearchParams → the query string of /results (and of GET /search), without paging. */
 export const paramsToQuery = (params: SearchParams): string =>
   buildQuery({
-    q: params.q, category: params.category, models: params.models, cities: params.cities, year: params.year,
-    price_max: params.price_max, km_max: params.km_max, gearbox: params.gearbox, only_below: params.only_below || undefined,
+    q: params.q, category: params.category, models: params.models, cities: params.cities,
+    year_min: params.year_min, year_max: params.year_max, price_min: params.price_min, price_max: params.price_max,
+    km_min: params.km_min, km_max: params.km_max, gearbox: params.gearbox, only_below: params.only_below || undefined,
     sort: params.sort === "relevance" ? undefined : params.sort,
     sources: params.sources, price_types: params.price_types, document_statuses: params.document_statuses,
   });
@@ -54,9 +56,12 @@ export function queryToParams(query: URLSearchParams): SearchParams {
   if (isCategory(category)) params.category = category;
   if (models.length) params.models = models;
   if (cities.length) params.cities = cities;
-  if (positive(query.get("year"))) params.year = positive(query.get("year"));
-  if (positive(query.get("price_max"))) params.price_max = positive(query.get("price_max"));
-  if (positive(query.get("km_max"))) params.km_max = positive(query.get("km_max"));
+  // `year` is the old single-year link format: it still opens, as a one-year range.
+  const year = positive(query.get("year"));
+  for (const name of ["year_min", "year_max", "price_min", "price_max", "km_min", "km_max"] as const) {
+    const value = positive(query.get(name)) ?? (name.startsWith("year") ? year : undefined);
+    if (value) params[name] = value;
+  }
   if (isGearbox(gearbox)) params.gearbox = gearbox;
   if (query.get("only_below") === "true") params.only_below = true;
   if (isSort(sort)) params.sort = sort;
