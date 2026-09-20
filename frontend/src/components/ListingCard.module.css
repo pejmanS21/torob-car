@@ -7,9 +7,12 @@
 .titleRow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .title { font-size: 15px; font-weight: 700; }
 .posted { font-size: 11px; color: var(--faint); white-space: nowrap; }
-.meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
-.source { color: var(--faint); }
-.priceRow { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+/* Two lines are reserved: the meta line wraps on most cards now that the source is in
+   it, and without the reservation the price row sits at a different height per card. */
+.meta { font-size: 12px; line-height: 18px; min-height: 36px; color: var(--muted); margin-top: 6px; }
+.source { color: var(--faint); white-space: nowrap; }
+/* «تخمینی برای این آگهی نداریم» is long enough to squeeze the price, so it may wrap. */
+.priceRow { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: space-between; align-items: center; margin-top: 8px; }
 .price { font-size: 17px; font-weight: 800; }
 .unit { font-size: 11px; font-weight: 500; color: var(--muted); }
 .diff { font-size: 12px; font-weight: 600; }
