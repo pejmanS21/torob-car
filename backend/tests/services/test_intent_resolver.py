@@ -71,3 +71,44 @@ async def test_unknown_vehicle_becomes_title_text(seeded_session: AsyncSession) 
     resolved = await resolver.resolve(intent)
     assert resolved.query.targets == ()
     assert resolved.filters.text == "کامیون بنز" and resolved.query.has_text is True
+
+
+class StubCatalog:
+    """Scores «g class» the way Postgres does: the Latin spelling lands on the wrong
+    Mercedes, and only the rewritten «g کلاس» reaches the real G Class."""
+
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    async def search(
+        self, query: str, category: object, min_similarity: float, limit: int
+    ) -> list[CatalogMatch]:
+        self.queries.append(query)
+        by_query = {
+            "g class": CatalogMatch(
+                "مرسدس بنز", "مرسدس بنز c class", "مرسدس بنز C Class C200L", 0.75
+            ),
+            "g کلاس": CatalogMatch("بنز", "بنز کلاس", "بنز کلاس G جی 63", 1.0),
+        }
+        match = by_query.get(query)
+        return [match] if match is not None and match.score >= min_similarity else []
+
+
+class StubCities:
+    async def find_by_names(self, names: list[str]) -> list[object]:
+        return []
+
+
+async def test_a_latin_query_reaches_the_catalog_row_written_in_persian() -> None:
+    catalog = StubCatalog()
+    resolver = IntentResolver(catalog, StubCities())  # type: ignore[arg-type]
+
+    resolved = await resolver.resolve(
+        SearchIntent(vehicles=[VehicleMention(model="g class")])
+    )
+
+    assert catalog.queries == ["g class", "g کلاس"]
+    target = resolved.query.targets[0]
+    assert (target.brand, target.trim) == ("بنز", "بنز کلاس G جی 63")
+    # The SQL guard rail follows the winner, so the real G Class is not filtered out.
+    assert resolved.filters.brands == ("بنز",)

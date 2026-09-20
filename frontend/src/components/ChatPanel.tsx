@@ -45,7 +45,7 @@ export function ChatPanel() {
         {suggestions.map((s) => <button key={s} className={styles.chip} onClick={() => sendChat(s)}>{s}</button>)}
       </div>
       <form className={styles.form} onSubmit={submit}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="مثلاً: بین این‌ها کدوم به‌صرفه‌تره؟" className={styles.input} aria-label="پیام" maxLength={500} />
+        <input value={input} onChange={(e) => setInput(e.target.value)} spellCheck={false} placeholder="مثلاً: بین این‌ها کدوم به‌صرفه‌تره؟" className={styles.input} aria-label="پیام" maxLength={500} />
         <button type="submit" className={styles.send} aria-label="ارسال" disabled={chatBusy}><Icon name="send" stroke="#fff" /></button>
       </form>
     </aside>

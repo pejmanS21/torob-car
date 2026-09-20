@@ -121,7 +121,9 @@ export function ResultsScreen({ params, sheetOpen, onSheetOpenChange }: Props) {
         {moreError && <ErrorBanner error={moreError} onRetry={loadMore} />}
         {hasMore && <button type="button" className={styles.more} onClick={loadMore} disabled={loadingMore}>{loadingMore ? "در حال بارگذاری…" : `بیشتر (${fa(total - items.length)} آگهی دیگر)`}</button>}
         {items.some((l) => l.lat !== null) && (
-          <MapCard title="آگهی‌ها روی نقشه" hint={`${fa(items.length)} آگهی بارگذاری‌شده · قیمت میانه ${formatToman(medianPrice(items))}`} listings={items} />
+          <div className={styles.mapBlock}>
+            <MapCard title="آگهی‌ها روی نقشه" hint={`${fa(items.length)} آگهی بارگذاری‌شده · قیمت میانه ${formatToman(medianPrice(items))}`} listings={items} />
+          </div>
         )}
       </div>
     </section>

@@ -3,7 +3,7 @@ names into catalog targets, city centroids and SQL guard rails."""
 
 from dataclasses import dataclass
 
-from core.text import normalize_persian
+from core.text import normalize_persian, script_variants
 from enums import MentionLevel
 from ranking.types import RankingQuery, ResolvedCity, VehicleTarget
 from ranking.weights import DEFAULT_WEIGHTS, RankingWeights
@@ -104,12 +104,28 @@ class IntentResolver:
         self, mention: VehicleMention, intent: SearchIntent
     ) -> VehicleTarget | None:
         for query in mention_queries(mention):
-            matches = await self._catalog.search(
-                query, intent.category, MIN_CATALOG_SIMILARITY, CATALOG_MATCH_LIMIT
-            )
-            if matches:
-                return _to_target(query, matches[0])
+            best = await self._best_match(query, intent)
+            if best is not None:
+                return best
         return None
+
+    async def _best_match(
+        self, query: str, intent: SearchIntent
+    ) -> VehicleTarget | None:
+        """The strongest catalog row across both scripts of the query. "g class" only
+        reaches «بنز کلاس G جی 63» once «کلاس» is tried in place of "class"."""
+        best_score = 0.0
+        best: VehicleTarget | None = None
+        for variant in script_variants(query):
+            matches = await self._catalog.search(
+                variant, intent.category, MIN_CATALOG_SIMILARITY, CATALOG_MATCH_LIMIT
+            )
+            if matches and matches[0].score > best_score:
+                best_score = matches[0].score
+                # How specific the mention was is judged from the user's own wording,
+                # so the target keeps the original query, not the rewritten variant.
+                best = _to_target(query, matches[0])
+        return best
 
     async def _resolve_cities(self, names: list[str]) -> tuple[ResolvedCity, ...]:
         found = await self._cities.find_by_names(names) if names else []

@@ -23,6 +23,10 @@
   gap: 14px;
 }
 
+/* The «بیشتر» button carries its own margin; without this the map sits flush against
+   the last row of cards whenever every result is already loaded. */
+.mapBlock { margin-top: 16px; }
+
 .empty {
   background: var(--surface);
   border: 1px dashed var(--line-strong);

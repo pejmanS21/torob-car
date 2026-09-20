@@ -5,6 +5,7 @@ import pytest
 from core.text import (
     jalali_year,
     normalize_persian,
+    script_variants,
     to_ascii_digits,
     to_persian_digits,
 )
@@ -45,3 +46,14 @@ def test_to_persian_digits_formats_ints_and_strings() -> None:
 )
 def test_jalali_year(moment: date, expected: int) -> None:
     assert jalali_year(moment) == expected
+
+
+def test_script_variants_rewrites_known_words_into_the_other_script() -> None:
+    # The catalog spells this car «بنز کلاس G جی 63», so "g class" has to reach «کلاس».
+    assert script_variants("g class") == ("g class", "g کلاس")
+    assert script_variants("جی کلاس") == ("جی کلاس", "جی class")
+
+
+def test_script_variants_leave_an_unknown_query_alone() -> None:
+    assert script_variants("پژو 206") == ("پژو 206",)
+    assert script_variants("") == ("",)

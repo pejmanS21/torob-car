@@ -17,7 +17,7 @@ export function HeaderSearch({ variant }: { variant: "desktop" | "mobile" }) {
     <form onSubmit={submit} className={styles[variant]} role="search">
       <div className={styles.box}>
         <Icon name="search" stroke="#667085" />
-        <input key={query} name="q" defaultValue={query} placeholder={PLACEHOLDER[variant]} className={styles.input} aria-label="جست‌وجو" />
+        <input key={query} name="q" defaultValue={query} spellCheck={false} placeholder={PLACEHOLDER[variant]} className={styles.input} aria-label="جست‌وجو" />
       </div>
     </form>
   );

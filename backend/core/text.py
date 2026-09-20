@@ -1,6 +1,7 @@
 """Persian text helpers. `normalize_persian` is the ONLY normaliser: ingest and
 query parsing must both go through it, otherwise trigram matching silently degrades."""
 
+from collections.abc import Mapping
 from datetime import date
 
 _PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
@@ -52,3 +53,31 @@ def jalali_year(moment: date) -> int:
         _JALALI_OFFSET_AFTER_NOWRUZ if after_nowruz else _JALALI_OFFSET_BEFORE_NOWRUZ
     )
     return moment.year - offset
+
+
+# Car names reach us in both scripts: the catalog has «بنز کلاس G جی 63» while people
+# type "g class". Trigram similarity cannot see that «کلاس» and "class" are the same
+# word, so the query is rewritten into both scripts before the catalog is searched.
+# Only pairs actually present in the crawled data belong here — add one when a real
+# query misses because of the split, never on speculation.
+CROSS_SCRIPT_WORDS: Mapping[str, str] = {
+    "class": "کلاس",
+    "benz": "بنز",
+    "mercedes": "مرسدس",
+    "coupe": "کوپه",
+    "sedan": "سدان",
+}
+_SCRIPT_EQUIVALENTS: Mapping[str, str] = {
+    **CROSS_SCRIPT_WORDS,
+    **{persian: latin for latin, persian in CROSS_SCRIPT_WORDS.items()},
+}
+
+
+def script_variants(query: str) -> tuple[str, ...]:
+    """The query as written, plus the same query with every known word swapped to the
+    other script. One extra variant at most, and never fewer than the original."""
+    words = query.split()
+    swapped = [_SCRIPT_EQUIVALENTS.get(word, word) for word in words]
+    if swapped == words:
+        return (query,)
+    return (query, " ".join(swapped))

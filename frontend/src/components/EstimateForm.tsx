@@ -54,7 +54,7 @@ export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Pro
         </label>
         <label className={styles.field}>
           برند و مدل
-          <input type="text" className={styles.asking} dir="rtl" value={typed} placeholder="مثلاً: پژو ۲۰۶" aria-label="برند و مدل"
+          <input type="text" className={styles.asking} dir="rtl" spellCheck={false} value={typed} placeholder="مثلاً: پژو ۲۰۶" aria-label="برند و مدل"
             onChange={(event) => { setTyped(event.target.value); if (input.trim) clearTrim(); }} />
           {!input.trim && suggestions.data && suggestions.data.length > 0 && (
             <ul className={styles.suggestions} role="listbox">

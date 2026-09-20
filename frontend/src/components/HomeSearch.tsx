@@ -34,6 +34,7 @@ export function HomeSearch() {
             placeholder="مثلاً: پژو ۲۰۶ کم‌کارکرد زیر ۷۰۰ میلیون، تهران"
             className={styles.input}
             aria-label="جست‌وجو"
+            spellCheck={false}
           />
           <button type="submit" className={styles.submit}>جست‌وجو</button>
         </div>
