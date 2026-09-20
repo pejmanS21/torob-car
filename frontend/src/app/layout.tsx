@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import { AppStateProvider } from "@/state/AppState";
+import { AuthDialog } from "@/components/AuthDialog";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <MobileTabBar />
           <ChatPanel />
+          <AuthDialog />
           <Toast />
         </AppStateProvider>
       </body>

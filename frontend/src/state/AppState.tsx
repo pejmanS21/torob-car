@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, apiPost } from "@/lib/api/client";
-import type { AssistantRequest, AssistantResponse } from "@/lib/api/types";
+import { clearAccount, removeAlertById, toAlertBody, toPriceAlert, toggleSavedId, withAlertId } from "@/lib/account";
+import { ApiError, apiDelete, apiGet, apiPost, apiPut } from "@/lib/api/client";
+import type { AccountState, AssistantRequest, AssistantResponse, PriceAlertRead, UserRead } from "@/lib/api/types";
 import type { ChatMessage, PriceAlert } from "@/lib/types";
 
 export const MAX_COMPARE = 3;
@@ -14,9 +15,12 @@ const HAPPY_MS = 2500;
 const HISTORY_LIMIT = 10; // the backend caps history at 10 messages
 const GREETING: ChatMessage = { role: "assistant", text: "سلام! بگو دنبال چه ماشینی هستی، یا بپرس کدوم آگهی به‌صرفه‌تره. من همهٔ آگهی‌های فعال رو می‌بینم.", listings: [] };
 const CHAT_UNAVAILABLE = "الان به سرویس جست‌وجو دسترسی ندارم؛ چند لحظه بعد دوباره بپرس.";
+const SYNC_FAILED = "ذخیره نشد؛ دوباره امتحان کن";
+type AuthPath = "/auth/login" | "/auth/register";
 
-interface Persisted { compare: string[]; saved: string[]; alerts: PriceAlert[]; loggedIn: boolean; }
-const EMPTY: Persisted = { compare: [], saved: [], alerts: [], loggedIn: false };
+// `loggedIn` used to live here as a fake flag; an old stored value is simply ignored.
+interface Persisted { compare: string[]; saved: string[]; alerts: PriceAlert[]; }
+const EMPTY: Persisted = { compare: [], saved: [], alerts: [] };
 
 interface Commit<T> { next: Persisted; result: T; }
 
@@ -38,9 +42,12 @@ function commitPersisted<T>(
 }
 
 export interface AppStateValue extends Persisted {
+  user: UserRead | null; loggedIn: boolean; authReady: boolean; authOpen: boolean;
   bellOpen: boolean; chatOpen: boolean; chatMessages: ChatMessage[]; chatBusy: boolean; avatarAnimation: AvatarAnimation; toast: string;
   toggleCompare(id: string): void; removeFromCompare(id: string): void; toggleSaved(id: string): void;
-  addAlert(alert: PriceAlert): void; removeAlert(index: number): void; toggleLogin(): void;
+  addAlert(alert: PriceAlert): void; removeAlert(id: string): void;
+  login(email: string, password: string): Promise<void>; register(email: string, password: string): Promise<void>; logout(): Promise<void>;
+  openAuth(): void; closeAuth(): void;
   setBellOpen(open: boolean): void; setChatOpen(open: boolean): void; sendChat(text: string): void; showToast(text: string): void;
 }
 
@@ -58,7 +65,6 @@ function readPersisted(): Persisted {
       compare: Array.isArray(parsed.compare) ? parsed.compare.slice(0, MAX_COMPARE) : EMPTY.compare,
       saved: Array.isArray(parsed.saved) ? parsed.saved : EMPTY.saved,
       alerts: Array.isArray(parsed.alerts) ? parsed.alerts.filter(isAlert) : EMPTY.alerts,
-      loggedIn: typeof parsed.loggedIn === "boolean" ? parsed.loggedIn : EMPTY.loggedIn,
     };
   } catch {
     return EMPTY; // storage blocked or corrupt → start clean (spec: Error handling)
@@ -77,6 +83,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [chatBusy, setChatBusy] = useState(false);
   const [recentReply, setRecentReply] = useState(false);
   const [toast, setToast] = useState("");
+  const [user, setUser] = useState<UserRead | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const userRef = useRef<UserRead | null>(null); // callbacks read this, so they stay stable
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const happyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const persistedRef = useRef<Persisted>(EMPTY);
@@ -96,6 +106,28 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted)); } catch { /* storage unavailable: state stays in memory */ }
   }, [persisted, hydrated]);
+
+  const adoptSession = useCallback((me: UserRead | null) => { userRef.current = me; setUser(me); }, []);
+  const adoptAccount = useCallback((state: AccountState) => {
+    commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, saved: state.saved, alerts: state.alerts.map(toPriceAlert) }, result: undefined }));
+  }, []);
+
+  // Who am I? Server Components stay anonymous, so the session is discovered here.
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+    const load = async () => {
+      const me = await apiGet<UserRead>("/me");
+      const [saved, alerts] = await Promise.all([apiGet<string[]>("/me/saved"), apiGet<PriceAlertRead[]>("/me/alerts")]);
+      if (cancelled) return;
+      adoptSession(me);
+      adoptAccount({ saved, alerts });
+    };
+    // A 401 is the normal answer for a visitor, and an unreachable API leaves them
+    // anonymous too: either way the locally stored `saved` list keeps working.
+    load().catch(() => undefined).finally(() => { if (!cancelled) setAuthReady(true); });
+    return () => { cancelled = true; };
+  }, [hydrated, adoptSession, adoptAccount]);
 
   // Clear pending timers on unmount so a fired timeout never calls setState
   // after teardown (Strict Mode mounts/unmounts/remounts in dev).
@@ -132,32 +164,71 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, compare: p.compare.filter((x) => x !== id) }, result: undefined }));
   }, []);
 
+  const flipSaved = useCallback((id: string): boolean =>
+    commitPersisted(persistedRef, setPersisted, (p) => {
+      const { saved, wasSaved } = toggleSavedId(p.saved, id);
+      return { next: { ...p, saved }, result: wasSaved };
+    }), []);
+
   const toggleSaved = useCallback((id: string) => {
-    const wasSaved = commitPersisted(persistedRef, setPersisted, (p) => {
-      const already = p.saved.includes(id);
-      return { next: { ...p, saved: already ? p.saved.filter((x) => x !== id) : [...p.saved, id] }, result: already };
-    });
+    const wasSaved = flipSaved(id);
     showToast(wasSaved ? "از نشان‌ها حذف شد" : "نشان شد");
-  }, [showToast]);
+    if (!userRef.current) return; // anonymous: the list lives in this browser only
+    const sync = wasSaved ? apiDelete(`/me/saved/${id}`) : apiPut(`/me/saved/${id}`);
+    sync.catch(() => { flipSaved(id); showToast(SYNC_FAILED); });
+  }, [flipSaved, showToast]);
 
   const addAlert = useCallback((alert: PriceAlert) => {
-    const outcome = commitPersisted(persistedRef, setPersisted, (p) => {
-      if (!p.loggedIn) return { next: p, result: "blocked" as const };
-      return { next: { ...p, alerts: [...p.alerts, alert] }, result: "saved" as const };
+    if (!userRef.current) { setAuthOpen(true); showToast("برای هشدار قیمت اول وارد شو"); return; }
+    commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: [...p.alerts, alert] }, result: undefined }));
+    showToast("هشدار قیمت ذخیره شد");
+    apiPost<PriceAlertRead>("/me/alerts", toAlertBody(alert))
+      .then((stored) => commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: withAlertId(p.alerts, alert, stored.id) }, result: undefined })))
+      .catch(() => {
+        commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: p.alerts.filter((a) => a !== alert) }, result: undefined }));
+        showToast(SYNC_FAILED);
+      });
+  }, [showToast]);
+
+  const removeAlert = useCallback((id: string) => {
+    const removed = commitPersisted(persistedRef, setPersisted, (p) => {
+      const result = removeAlertById(p.alerts, id);
+      return { next: { ...p, alerts: result.alerts }, result: result.removed };
     });
-    if (outcome === "blocked") { setBellOpen(true); showToast("برای هشدار قیمت اول وارد شو"); }
-    else showToast("هشدار قیمت ذخیره شد");
+    if (!removed) return;
+    apiDelete(`/me/alerts/${id}`).catch(() => {
+      commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: [...p.alerts, removed] }, result: undefined }));
+      showToast(SYNC_FAILED);
+    });
   }, [showToast]);
 
-  const removeAlert = useCallback((index: number) => {
-    commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: p.alerts.filter((_, i) => i !== index) }, result: undefined }));
-  }, []);
+  const signIn = useCallback(async (path: AuthPath, email: string, password: string) => {
+    adoptSession(await apiPost<UserRead>(path, { email, password })); // failures propagate to the dialog
+    setAuthOpen(false);
+    showToast("خوش اومدی!");
+    const { saved, alerts } = persistedRef.current;
+    try {
+      adoptAccount(await apiPost<AccountState>("/me/import", { saved, alerts: alerts.map(toAlertBody) }));
+    } catch {
+      // ponytail: a failed import keeps this browser's lists until the next reload, which
+      // replaces them with the server copy. Add a retry queue if that loss ever matters.
+      showToast(SYNC_FAILED);
+    }
+  }, [adoptSession, adoptAccount, showToast]);
 
-  const toggleLogin = useCallback(() => {
-    const nextLoggedIn = commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, loggedIn: !p.loggedIn }, result: !p.loggedIn }));
-    showToast(nextLoggedIn ? "خوش اومدی علی!" : "خارج شدی");
+  const login = useCallback((email: string, password: string) => signIn("/auth/login", email, password), [signIn]);
+  const register = useCallback((email: string, password: string) => signIn("/auth/register", email, password), [signIn]);
+
+  const logout = useCallback(async () => {
+    try { await apiPost<void>("/auth/logout", {}); } catch { showToast("خروج انجام نشد؛ دوباره امتحان کن"); return; }
+    adoptSession(null);
+    commitPersisted(persistedRef, setPersisted, (p) => ({ next: clearAccount(p), result: undefined }));
     setBellOpen(false);
-  }, [showToast]);
+    showToast("خارج شدی");
+  }, [adoptSession, showToast]);
+
+  const openAuth = useCallback(() => { setBellOpen(false); setAuthOpen(true); }, []);
+  const closeAuth = useCallback(() => setAuthOpen(false), []);
 
   const appendChat = useCallback((message: ChatMessage) => {
     chatRef.current = [...chatRef.current, message];
@@ -189,9 +260,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const avatarAnimation: AvatarAnimation = chatBusy ? "thinking" : recentReply ? "happy" : "idle";
 
   const value = useMemo<AppStateValue>(() => ({
-    ...persisted, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast,
-    toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, toggleLogin, setBellOpen, setChatOpen, sendChat, showToast,
-  }), [persisted, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast, toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, toggleLogin, sendChat, showToast]);
+    ...persisted, user, loggedIn: user !== null, authReady, authOpen, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast,
+    toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, login, register, logout, openAuth, closeAuth, setBellOpen, setChatOpen, sendChat, showToast,
+  }), [persisted, user, authReady, authOpen, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast, toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, login, register, logout, openAuth, closeAuth, sendChat, showToast]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
 }
