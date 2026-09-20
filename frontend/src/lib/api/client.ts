@@ -41,7 +41,11 @@ async function toApiError(response: Response): Promise<ApiError> {
   }
 }
 
-async function request<T>(path: string, init: RequestInit): Promise<T> {
+const NO_CONTENT = 204;
+const REFRESH_PATH = "/auth/refresh";
+const TOKEN_EXPIRED = "token_expired";
+
+async function send<T>(path: string, init: RequestInit): Promise<T> {
   let response: Response;
   try {
     // Redis already caches rankings server-side; the browser never caches API responses.
@@ -51,13 +55,49 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
     throw new ApiError(NETWORK_ERROR_STATUS, "network_error", "network failure");
   }
   if (!response.ok) throw await toApiError(response);
+  if (response.status === NO_CONTENT) return undefined as T;
   return (await response.json()) as T;
 }
+
+let refreshInFlight: Promise<void> | null = null;
+
+/** One refresh shared by every request that found its access token expired. */
+function refreshSession(): Promise<void> {
+  refreshInFlight ??= send<unknown>(REFRESH_PATH, { method: "POST" })
+    .then(() => undefined)
+    .finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
+
+/** The access token lives 15 minutes and its cookie 30 days, so an expired one still
+ *  arrives and the backend says `token_expired`: refresh once, then replay. The cookies
+ *  are HttpOnly and same-origin — no token is ever visible to this code. */
+async function request<T>(path: string, init: RequestInit): Promise<T> {
+  try {
+    return await send<T>(path, init);
+  } catch (error) {
+    const expired = error instanceof ApiError && error.code === TOKEN_EXPIRED && path !== REFRESH_PATH;
+    if (!expired) throw error;
+    try { await refreshSession(); } catch { throw error; } // the session is over: report the original failure
+    return send<T>(path, init);
+  }
+}
+
+const withJson = (method: string, body: unknown, signal?: AbortSignal): RequestInit =>
+  body === undefined ? { method, signal } : { method, body: JSON.stringify(body), headers: { "content-type": "application/json" }, signal };
 
 export function apiGet<T>(path: string, params: QueryParams = {}, signal?: AbortSignal): Promise<T> {
   return request<T>(`${path}${buildQuery(params)}`, { method: "GET", signal });
 }
 
 export function apiPost<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
-  return request<T>(path, { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" }, signal });
+  return request<T>(path, withJson("POST", body, signal));
+}
+
+export function apiPut<T = void>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  return request<T>(path, withJson("PUT", body, signal));
+}
+
+export function apiDelete<T = void>(path: string, signal?: AbortSignal): Promise<T> {
+  return request<T>(path, { method: "DELETE", signal });
 }
