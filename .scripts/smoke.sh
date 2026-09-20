@@ -97,5 +97,31 @@ step "422 message"
 "${AB[@]}" wait "[role='alert']"
 expect_text "Invalid search filters" "422 envelope message is shown inline"
 
+step "account"
+SMOKE_EMAIL="smoke+$(date +%s)@example.com"
+SMOKE_PASSWORD="smoke-$(date +%s)-pass" # generated per run: no credential literal in the repo
+BOOKMARK="button[title='نشان‌کردن']"
+"${AB[@]}" open "$BASE_URL/results?q=$(encode "$QUERY")"
+"${AB[@]}" wait "a[href^='/listing/']"
+LISTING_URL="$BASE_URL$(first_href "a[href^='/listing/']")"
+"${AB[@]}" find role button click --name "ورود"
+"${AB[@]}" find role tab click --name "ثبت‌نام"
+"${AB[@]}" find label "ایمیل" fill "$SMOKE_EMAIL"
+"${AB[@]}" find label "رمز عبور" fill "$SMOKE_PASSWORD"
+"${AB[@]}" press Enter
+"${AB[@]}" wait "summary[title='$SMOKE_EMAIL']"
+echo "ok: registered and logged in"
+"${AB[@]}" open "$LISTING_URL"
+"${AB[@]}" wait "$BOOKMARK"
+"${AB[@]}" click "$BOOKMARK"
+"${AB[@]}" wait "$BOOKMARK[aria-pressed='true']"
+"${AB[@]}" open "$LISTING_URL" # a fresh load: the saved state can only come from the server
+"${AB[@]}" wait "$BOOKMARK[aria-pressed='true']"
+echo "ok: the saved listing survived a reload"
+"${AB[@]}" click "summary[title='$SMOKE_EMAIL']"
+"${AB[@]}" find role button click --name "خروج"
+"${AB[@]}" wait "$BOOKMARK[aria-pressed='false']"
+echo "ok: logout cleared the saved listing"
+
 echo
 echo "SMOKE PASSED against $BASE_URL"
