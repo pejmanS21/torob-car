@@ -69,6 +69,17 @@ class DocumentStatus(StrEnum):
     MULTI_PAGE = "multi_page"
 
 
+class FacetDimension(StrEnum):
+    """A filter whose options are counted. Counting one leaves its own filter out,
+    so the alternatives to what is already ticked stay visible."""
+
+    CATEGORY = "category"
+    MODEL = "model"
+    CITY = "city"
+    SOURCE = "source"
+    GEARBOX = "gearbox"
+
+
 class EstimateBasis(StrEnum):
     TRIM_YEAR = "trim_year"
     TRIM_NEAR_YEAR = "trim_near_year"

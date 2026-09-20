@@ -176,3 +176,11 @@ def test_format_toman_switches_to_billions() -> None:
     assert labels.format_toman(20 * MILLION) == "۲۰ میلیون"
     assert labels.format_toman(1_250 * MILLION) == "۱.۲۵ میلیارد"
     assert labels.format_toman(2_000 * MILLION) == "۲ میلیارد"
+
+
+def test_a_listing_under_the_km_floor_is_a_labelled_near_miss() -> None:
+    query = replace(QUERY, km_min=50_000)
+    inside, below = rank(query, EXACT_MATCH, variant(2, km=20_000))
+    assert (inside.id, inside.is_exact) == (EXACT_MATCH.id, True)
+    assert below.is_exact is False
+    assert labels.under_km(30_000) in below.labels

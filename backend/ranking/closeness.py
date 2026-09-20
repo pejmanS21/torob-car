@@ -116,17 +116,21 @@ def year_closeness(
 def km_closeness(
     query: RankingQuery, candidate: Candidate, weights: RankingWeights
 ) -> CriterionScore | None:
-    if query.km_max is None:
+    if query.km_min is None and query.km_max is None:
         return None
     if candidate.km is None:
         return CriterionScore(
             Criterion.KM, weights.unknown_closeness, labels.KM_UNKNOWN
         )
-    if candidate.km <= query.km_max:
-        return CriterionScore(Criterion.KM, EXACT)
-    excess = candidate.km - query.km_max
-    closeness = _linear_decay(excess, query.km_max * weights.km_tolerance)
-    return CriterionScore(Criterion.KM, closeness, labels.over_km(excess))
+    if query.km_max is not None and candidate.km > query.km_max:
+        excess = candidate.km - query.km_max
+        closeness = _linear_decay(excess, query.km_max * weights.km_tolerance)
+        return CriterionScore(Criterion.KM, closeness, labels.over_km(excess))
+    if query.km_min is not None and candidate.km < query.km_min:
+        shortfall = query.km_min - candidate.km
+        closeness = _linear_decay(shortfall, query.km_min * weights.km_tolerance)
+        return CriterionScore(Criterion.KM, closeness, labels.under_km(shortfall))
+    return CriterionScore(Criterion.KM, EXACT)
 
 
 def city_closeness(

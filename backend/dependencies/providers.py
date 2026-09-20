@@ -96,9 +96,14 @@ def get_listing_service(
 
 
 def get_facet_service(
-    session: SessionDep, cache: CacheDep, settings: SettingsDep
+    session: SessionDep,
+    cache: CacheDep,
+    settings: SettingsDep,
+    parser: Annotated[QueryParser, Depends(get_query_parser)],
 ) -> FacetService:
     return FacetService(
+        parser,
+        IntentResolver(CatalogRepository(session), CityRepository(session)),
         ListingRepository(session),
         CatalogRepository(session),
         cache,

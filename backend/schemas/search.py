@@ -40,6 +40,7 @@ class SearchIntent(BaseModel):
     year_max: int | None = None
     price_min: PositiveInt | None = Field(default=None, description="toman")
     price_max: PositiveInt | None = Field(default=None, description="toman")
+    km_min: PositiveInt | None = None
     km_max: PositiveInt | None = None
     cities: list[str] = Field(default_factory=list)
     gearbox: Gearbox | None = None
@@ -64,6 +65,8 @@ class SearchIntent(BaseModel):
             raise ValueError("year_min must not exceed year_max")
         if self.price_min and self.price_max and self.price_min > self.price_max:
             raise ValueError("price_min must not exceed price_max")
+        if self.km_min and self.km_max and self.km_min > self.km_max:
+            raise ValueError("km_min must not exceed km_max")
         return self
 
 
@@ -74,8 +77,12 @@ class SearchOverrides(BaseModel):
     category: Category | None = None
     models: list[str] = Field(default_factory=list)
     cities: list[str] = Field(default_factory=list)
-    year: int | None = None
+    year: int | None = None  # one exact year; year_min / year_max win over it
+    year_min: int | None = None
+    year_max: int | None = None
+    price_min: PositiveInt | None = None
     price_max: PositiveInt | None = None
+    km_min: PositiveInt | None = None
     km_max: PositiveInt | None = None
     gearbox: Gearbox | None = None
     sources: list[Source] = Field(default_factory=list)
@@ -88,9 +95,11 @@ class SearchOverrides(BaseModel):
         changes: dict[str, object] = {
             "category": self.category,
             "cities": self.cities or None,
-            "year_min": self.year,
-            "year_max": self.year,
+            "year_min": self.year_min or self.year,
+            "year_max": self.year_max or self.year,
+            "price_min": self.price_min,
             "price_max": self.price_max,
+            "km_min": self.km_min,
             "km_max": self.km_max,
             "gearbox": self.gearbox,
             "sources": self.sources or None,

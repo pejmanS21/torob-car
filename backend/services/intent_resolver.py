@@ -76,6 +76,7 @@ class IntentResolver:
             year_max=intent.year_max,
             price_min=intent.price_min,
             price_max=intent.price_max,
+            km_min=intent.km_min,
             km_max=intent.km_max,
             cities=cities,
             gearbox=intent.gearbox,
@@ -148,6 +149,7 @@ class IntentResolver:
             and round(intent.price_min * (1 - price_slack)),
             price_ceiling=intent.price_max
             and round(intent.price_max * (1 + price_slack)),
+            km_floor=intent.km_min and round(intent.km_min * (1 - km_slack)),
             km_ceiling=intent.km_max and round(intent.km_max * (1 + km_slack)),
             year_floor=intent.year_min and intent.year_min - weights.year_tolerance,
             year_ceiling=intent.year_max and intent.year_max + weights.year_tolerance,

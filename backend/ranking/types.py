@@ -29,6 +29,7 @@ class RankingQuery:
     year_max: int | None = None
     price_min: int | None = None
     price_max: int | None = None
+    km_min: int | None = None
     km_max: int | None = None
     cities: tuple[ResolvedCity, ...] = ()
     gearbox: Gearbox | None = None

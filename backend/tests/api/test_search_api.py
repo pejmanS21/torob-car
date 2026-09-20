@@ -142,8 +142,10 @@ async def test_facets_are_scoped_by_category_and_dated(api: AsyncClient) -> None
     motorcycles = scoped.json()
     assert everything["data_as_of"] and motorcycles["data_as_of"]
     assert everything["model_count"] > motorcycles["model_count"] > 0
-    assert set(motorcycles["categories"]) == {"motorcycle"}
-    assert len(everything["categories"]) == 5
+    # Counting a filter leaves that filter out, so the other categories stay on offer.
+    assert len(everything["categories"]) == len(motorcycles["categories"]) == 5
+    assert motorcycles["categories"]["motorcycle"] == 120
+    assert motorcycles["applied"]["category"] == "motorcycle"
     assert motorcycles["cities"][0]["count"] <= everything["cities"][0]["count"]
     assert all(m["count"] <= 120 for m in motorcycles["models"])
     assert sum(c["count"] for c in motorcycles["cities"]) == 120
@@ -172,3 +174,44 @@ async def test_facets_count_listings_per_source(api: AsyncClient) -> None:
     assert response.status_code == 200, response.text
     sources = {item["value"]: item["count"] for item in response.json()["sources"]}
     assert sources["divar"] > 0
+
+
+async def test_facets_follow_the_search_query(api: AsyncClient) -> None:
+    everything = (await api.get("/api/v1/facets")).json()
+    scoped = (await api.get("/api/v1/facets", params={"q": "۲۰۶ تهران"})).json()
+    # What the query said comes back in the panel's own vocabulary…
+    assert scoped["applied"]["models"] == ["پژو 206"]
+    assert scoped["applied"]["cities"] == ["تهران"]
+    # …city counts are now about the 206 only, and the ticked city is still counted…
+    tehran = {c["value"]: c["count"] for c in scoped["cities"]}["تهران"]
+    assert 0 < tehran < {c["value"]: c["count"] for c in everything["cities"]}["تهران"]
+    # …while the model list keeps the sibling Peugeots as alternatives.
+    assert {m["brand"] for m in scoped["models"]} == {"پژو"}
+    assert len(scoped["models"]) > 1
+    assert scoped["ranges"]["price_min"] <= scoped["ranges"]["price_max"]
+
+
+async def test_minimum_filters_narrow_the_exact_matches(api: AsyncClient) -> None:
+    loose = await search(api, q="۲۰۶", page_size=50)
+    tight = await search(
+        api,
+        q="۲۰۶",
+        price_min=700 * MILLION,
+        km_min=100_000,
+        year_min=1390,
+        page_size=50,
+    )
+    assert 0 < tight["exact_count"] < loose["exact_count"]
+    exact = [item for item in tight["items"] if item["is_exact"]]
+    assert all(
+        item["price"] is None or item["price"] >= 700 * MILLION for item in exact
+    )
+    assert all(item["km"] is None or item["km"] >= 100_000 for item in exact)
+    assert all(item["year"] is None or item["year"] >= 1390 for item in exact)
+
+
+async def test_a_minimum_above_the_maximum_is_rejected(api: AsyncClient) -> None:
+    response = await api.get(
+        "/api/v1/search", params={"km_min": 200_000, "km_max": 50_000}
+    )
+    assert response.status_code == 422

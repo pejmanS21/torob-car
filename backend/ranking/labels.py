@@ -48,6 +48,11 @@ def over_km(extra_km: int) -> str:
     return f"{to_persian_digits(thousands)} هزار کیلومتر بیشتر از سقف"
 
 
+def under_km(missing_km: int) -> str:
+    thousands = max(1, round(missing_km / KM_PER_THOUSAND))
+    return f"{to_persian_digits(thousands)} هزار کیلومتر کمتر از کف"
+
+
 def farther(distance_km: float, city: str) -> str:
     return f"{to_persian_digits(round(distance_km))} کیلومتر دورتر · {city}"
 

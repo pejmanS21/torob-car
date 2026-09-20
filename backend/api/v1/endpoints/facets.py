@@ -1,10 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from dependencies.providers import get_facet_service
-from enums import Category
 from schemas.facets import Facets
+from schemas.search import SearchParams
 from services.facet_service import FacetService
 
 router = APIRouter(prefix="/facets", tags=["facets"])
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/facets", tags=["facets"])
 @router.get("", response_model=Facets)
 async def read_facets(
     service: Annotated[FacetService, Depends(get_facet_service)],
-    category: Category | None = None,
+    params: Annotated[SearchParams, Query()],
 ) -> Facets:
-    return await service.get_facets(category)
+    """Same parameters as GET /search, so the panel counts follow the search."""
+    return await service.get_facets(params.q, params)

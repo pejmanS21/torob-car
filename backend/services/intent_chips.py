@@ -40,6 +40,9 @@ def build_chips(
         chips.append(f"از {labels.format_toman(intent.price_min)}")
     if intent.price_max:
         chips.append(f"زیر {labels.format_toman(intent.price_max)}")
+    if intent.km_min:
+        thousands = to_persian_digits(round(intent.km_min / KM_PER_THOUSAND))
+        chips.append(f"کارکرد از {thousands} هزار")
     if intent.km_max:
         thousands = to_persian_digits(round(intent.km_max / KM_PER_THOUSAND))
         chips.append(f"کارکرد زیر {thousands} هزار")
