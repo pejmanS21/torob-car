@@ -38,5 +38,10 @@ test("alerts convert to and from the API shapes without the id leaking into a cr
 });
 
 test("every auth error code the dialog handles has Persian copy", () => {
-  expect(Object.keys(AUTH_ERROR_TEXT).sort()).toEqual(["account_disabled", "email_taken", "invalid_credentials"]);
+  expect(Object.keys(AUTH_ERROR_TEXT).sort()).toEqual([
+    "account_disabled",
+    "email_taken",
+    "invalid_credentials",
+    "validation_error",
+  ]);
 });

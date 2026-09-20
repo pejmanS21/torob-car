@@ -122,10 +122,9 @@ class AuthService:
 
     async def require_admin(self, user_id: uuid.UUID) -> UserRead:
         """Always reads the database, never the token, so disabling or demoting an
-        admin takes effect on their very next request."""
+        admin takes effect on their very next request. `_load` already raises
+        `AccountDisabledError` for a disabled account."""
         user = await self._load(user_id)
-        if not user.is_active:
-            raise AccountDisabledError()
         if user.role is not UserRole.ADMIN:
             raise PermissionDeniedError()
         return UserRead.model_validate(user)
@@ -153,9 +152,15 @@ class AuthService:
         return await _in_hash_pool(hash_password, password, self._settings.scrypt_n)
 
     async def _load(self, user_id: uuid.UUID) -> User:
+        """Shared by every access-token-authenticated method (`change_password`,
+        `get_user`, `logout_all`, `require_admin`) so a disabled account can never
+        keep itself alive through one of them. `refresh` does not use this helper —
+        it loads the user itself and checks `is_active` there."""
         user = await self._users.get_by_id(user_id)
         if user is None:
             raise NotAuthenticatedError()
+        if not user.is_active:
+            raise AccountDisabledError()
         return user
 
     def _issue(self, user: User) -> AuthResult:

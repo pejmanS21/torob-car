@@ -142,7 +142,16 @@ async def _handle_app_error(_: Request, error: AppError) -> JSONResponse:
 async def _handle_validation_error(
     _: Request, error: RequestValidationError
 ) -> JSONResponse:
-    return _envelope(422, "validation_error", "Invalid request", error.errors())
+    # `error.errors()` includes the raw submitted value under "input" — for a password
+    # field that is the plaintext password. Strip it before it reaches any log, APM or
+    # error tracker; loc/msg/type stay so the response is still useful. (FastAPI's
+    # RequestValidationError.errors() takes no kwargs, unlike pydantic's
+    # ValidationError.errors() used in invalid_search_error above — filter by hand.)
+    details = [
+        {key: value for key, value in entry.items() if key != "input"}
+        for entry in error.errors()
+    ]
+    return _envelope(422, "validation_error", "Invalid request", details)
 
 
 async def _handle_http_error(_: Request, error: StarletteHTTPException) -> JSONResponse:

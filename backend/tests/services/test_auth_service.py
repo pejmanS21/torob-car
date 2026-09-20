@@ -171,6 +171,20 @@ async def test_get_user_raises_when_the_account_is_gone() -> None:
         await _service(_users(get_by_id=None)).get_user(uuid.UUID(int=42))
 
 
+async def test_get_user_raises_when_the_account_is_disabled() -> None:
+    users = _users(get_by_id=_user(is_active=False))
+    with pytest.raises(AccountDisabledError):
+        await _service(users).get_user(uuid.UUID(int=42))
+
+
+async def test_change_password_raises_when_the_account_is_disabled() -> None:
+    users = _users(get_by_id=_user(is_active=False))
+    change = PasswordChange(current=PASSWORD, new="a brand new password")
+    with pytest.raises(AccountDisabledError):
+        await _service(users).change_password(uuid.UUID(int=42), change)
+    users.replace_password.assert_not_awaited()
+
+
 async def test_require_admin_checks_role_and_activity_against_the_database() -> None:
     admin = _user(role=UserRole.ADMIN)
     assert (await _service(_users(get_by_id=admin)).require_admin(admin.id)).role is (

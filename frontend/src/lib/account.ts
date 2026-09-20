@@ -10,6 +10,7 @@ export const AUTH_ERROR_TEXT: Record<string, string> = {
   invalid_credentials: "ایمیل یا رمز اشتباه است",
   email_taken: "این ایمیل قبلاً ثبت شده؛ وارد شو",
   account_disabled: "حساب غیرفعال شده",
+  validation_error: "ایمیل یا رمز واردشده معتبر نیست",
 };
 
 export interface AccountLists { saved: string[]; alerts: PriceAlert[]; }
