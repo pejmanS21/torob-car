@@ -16,8 +16,9 @@
   box-shadow: 0 8px 30px rgba(23, 32, 51, .06);
 }
 
+/* Neutral: a red border on a focused field reads as a validation error. */
 .box:focus-within {
-  border-color: var(--red);
+  border-color: var(--line-strong);
 }
 
 .input {

@@ -16,7 +16,10 @@ export function HeaderSearch({ variant }: { variant: "desktop" | "mobile" }) {
   return (
     <form onSubmit={submit} className={styles[variant]} role="search">
       <div className={styles.box}>
-        <Icon name="search" stroke="#667085" />
+        {/* A real submit button: the magnifier looks pressable, so it has to search. */}
+        <button type="submit" className={styles.submit} aria-label="جست‌وجو">
+          <Icon name="search" stroke="#667085" />
+        </button>
         <input key={query} name="q" defaultValue={query} spellCheck={false} placeholder={PLACEHOLDER[variant]} className={styles.input} aria-label="جست‌وجو" />
       </div>
     </form>
