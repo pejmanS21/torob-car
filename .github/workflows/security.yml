@@ -28,3 +28,7 @@ jobs:
         env:
           # Required since gitleaks-action v2 to scan pull requests.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The action uploads its report as an artifact and crashes the job when the
+          # account's artifact storage is full — even on a clean scan. The scan itself
+          # still fails the job on a finding, which is what gates the merge.
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
