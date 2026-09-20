@@ -64,6 +64,63 @@ class IngestError(AppError):
     code = "ingest_failed"
 
 
+class InvalidCredentialsError(AppError):
+    status_code = 401
+    code = "invalid_credentials"
+
+    def __init__(self) -> None:
+        # One message for "no such user" and "wrong password": never say which.
+        super().__init__("Invalid email or password")
+
+
+class NotAuthenticatedError(AppError):
+    status_code = 401
+    code = "not_authenticated"
+
+    def __init__(self) -> None:
+        super().__init__("Not authenticated")
+
+
+class TokenExpiredError(AppError):
+    status_code = 401
+    code = "token_expired"
+
+    def __init__(self) -> None:
+        super().__init__("Token expired")
+
+
+class AccountDisabledError(AppError):
+    status_code = 403
+    code = "account_disabled"
+
+    def __init__(self) -> None:
+        super().__init__("Account disabled")
+
+
+class PermissionDeniedError(AppError):
+    status_code = 403
+    code = "permission_denied"
+
+    def __init__(self) -> None:
+        super().__init__("Permission denied")
+
+
+class EmailAlreadyRegisteredError(AppError):
+    status_code = 409
+    code = "email_taken"
+
+    def __init__(self) -> None:
+        super().__init__("Email already registered")
+
+
+class AlertNotFoundError(AppError):
+    status_code = 404
+    code = "alert_not_found"
+
+    def __init__(self, alert_id: uuid.UUID) -> None:
+        super().__init__("Alert not found", {"alert_id": str(alert_id)})
+
+
 def invalid_search_error(message: str, error: ValidationError) -> InvalidSearchError:
     """A pydantic ValidationError raised while building a SearchIntent from
     user-supplied input (query params, free-text query) is a 422, not a 500.

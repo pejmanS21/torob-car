@@ -1,9 +1,21 @@
 import uuid
 
+import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from errors import ListingNotFoundError, register_exception_handlers
+from errors import (
+    AccountDisabledError,
+    AlertNotFoundError,
+    AppError,
+    EmailAlreadyRegisteredError,
+    InvalidCredentialsError,
+    ListingNotFoundError,
+    NotAuthenticatedError,
+    PermissionDeniedError,
+    TokenExpiredError,
+    register_exception_handlers,
+)
 
 
 def _failing_app() -> FastAPI:
@@ -57,3 +69,25 @@ async def test_unknown_route_uses_the_same_envelope() -> None:
     status, body = await _get("/nope")
     assert status == 404
     assert body["error"]["code"] == "http_error"
+
+
+@pytest.mark.parametrize(
+    ("error", "status_code", "code"),
+    [
+        (InvalidCredentialsError(), 401, "invalid_credentials"),
+        (NotAuthenticatedError(), 401, "not_authenticated"),
+        (TokenExpiredError(), 401, "token_expired"),
+        (AccountDisabledError(), 403, "account_disabled"),
+        (PermissionDeniedError(), 403, "permission_denied"),
+        (EmailAlreadyRegisteredError(), 409, "email_taken"),
+        (AlertNotFoundError(uuid.UUID(int=9)), 404, "alert_not_found"),
+    ],
+)
+def test_auth_errors_carry_their_status_and_code(
+    error: AppError, status_code: int, code: str
+) -> None:
+    assert (error.status_code, error.code) == (status_code, code)
+
+
+def test_email_taken_never_echoes_the_address() -> None:
+    assert EmailAlreadyRegisteredError().context == {}

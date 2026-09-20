@@ -30,8 +30,8 @@ services:
       - traefik.http.routers.api-search.middlewares=search-ratelimit
       - traefik.http.middlewares.search-ratelimit.ratelimit.average=10
       - traefik.http.middlewares.search-ratelimit.ratelimit.burst=20
-      # LLM-backed and estimator routes: tighter limit, same explicit priority tier.
-      - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`)
+      # LLM-backed, estimator and auth routes: tighter limit, same explicit priority tier.
+      - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`) || PathPrefix(`/api/v1/auth`)
       - traefik.http.routers.api-assistant.priority=100
       - traefik.http.routers.api-assistant.entrypoints=web
       - traefik.http.routers.api-assistant.service=backend

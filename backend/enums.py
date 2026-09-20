@@ -134,3 +134,13 @@ class Criterion(StrEnum):
     FUEL = "fuel"
     TEXT = "text"
     COLOR = "color"
+
+
+class UserRole(StrEnum):
+    USER = "user"
+    ADMIN = "admin"
+
+
+class TokenType(StrEnum):
+    ACCESS = "access"
+    REFRESH = "refresh"
