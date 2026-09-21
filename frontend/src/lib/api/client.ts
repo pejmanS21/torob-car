@@ -98,6 +98,10 @@ export function apiPut<T = void>(path: string, body?: unknown, signal?: AbortSig
   return request<T>(path, withJson("PUT", body, signal));
 }
 
+export function apiPatch<T = void>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  return request<T>(path, withJson("PATCH", body, signal));
+}
+
 export function apiDelete<T = void>(path: string, signal?: AbortSignal): Promise<T> {
   return request<T>(path, { method: "DELETE", signal });
 }
