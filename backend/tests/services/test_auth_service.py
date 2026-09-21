@@ -121,6 +121,10 @@ async def test_refresh_issues_a_new_pair_for_a_current_token() -> None:
     result = await _service(_users(get_by_id=user)).refresh(_refresh_token(user))
     claims = decode_token(result.tokens.access, TEST_JWT_SECRET, TokenType.ACCESS)
     assert claims.token_version == 2
+    # The helper stamps auth_at=1, a value _now() can never produce. This is what makes
+    # the assertion discriminating: if refresh ever re-stamped instead of carrying the
+    # original through, auth_at would be a current unix second and this would fail.
+    assert claims.auth_at == 1
 
 
 async def test_refresh_rejects_a_missing_stale_expired_or_wrong_type_token() -> None:
