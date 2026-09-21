@@ -10,7 +10,13 @@ from core.security import (
     TokenPair,
 )
 from dependencies.providers import CurrentUserDep, SettingsDep, get_auth_service
-from schemas.auth import LoginRequest, PasswordChange, UserCreate, UserRead
+from schemas.auth import (
+    LoginRequest,
+    PasswordChange,
+    ReauthRequest,
+    UserCreate,
+    UserRead,
+)
 from services.auth_service import AuthService
 
 SECONDS_PER_DAY = 86_400
@@ -111,3 +117,18 @@ async def change_password(
 ) -> None:
     result = await service.change_password(current.user_id, payload)
     _set_auth_cookies(response, result.tokens, settings)
+
+
+@router.post("/reauth")
+async def reauth(
+    payload: ReauthRequest,
+    response: Response,
+    current: CurrentUserDep,
+    service: ServiceDep,
+    settings: SettingsDep,
+) -> UserRead:
+    """Re-stamp admin freshness after a password entry. Deliberately does not bump
+    token_version, so the user's other devices stay signed in."""
+    result = await service.reauth(current.user_id, payload)
+    _set_auth_cookies(response, result.tokens, settings)
+    return result.user

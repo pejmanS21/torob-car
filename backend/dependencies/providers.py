@@ -1,5 +1,6 @@
 """Every FastAPI `Depends` provider — the single place where objects are wired."""
 
+import time
 from functools import lru_cache
 from typing import Annotated
 
@@ -13,11 +14,13 @@ from core.config import Settings, get_settings
 from core.security import ACCESS_COOKIE, TokenClaims, decode_token
 from db.session import get_session
 from enums import TokenType
-from errors import NotAuthenticatedError
+from errors import AdminReauthRequiredError, NotAuthenticatedError
 from llm.assistant_agent import AssistantDeps, AssistantReply, build_assistant_agent
 from llm.intent_agent import build_intent_agent
 from llm.model_factory import build_model
 from ranking.ranker import ListingRanker
+from repositories.admin_audit_repository import AdminAuditRepository
+from repositories.admin_user_repository import AdminUserRepository
 from repositories.catalog_repository import CatalogRepository
 from repositories.city_repository import CityRepository
 from repositories.health_repository import HealthRepository
@@ -28,7 +31,9 @@ from repositories.user_repository import UserRepository
 from schemas.auth import UserRead
 from schemas.search import SearchIntent
 from services.account_service import AccountService
+from services.admin_user_service import AdminUserService
 from services.assistant_service import AssistantService
+from services.audit_recorder import AuditRecorder
 from services.auth_service import AuthService
 from services.catalog_service import CatalogService
 from services.estimate_service import EstimateService
@@ -184,8 +189,47 @@ def get_current_user(
 CurrentUserDep = Annotated[TokenClaims, Depends(get_current_user)]
 
 
+def _require_fresh_enough(auth_at: int, window_minutes: int) -> None:
+    """`auth_at` is stamped only by a real password entry — a refresh carries the old
+    value through. So this measures time since the human was last present, not since
+    the session was last active."""
+    if int(time.time()) - auth_at > window_minutes * 60:
+        raise AdminReauthRequiredError()
+
+
 async def require_admin(
     current: CurrentUserDep,
+    settings: SettingsDep,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> UserRead:
+    _require_fresh_enough(current.auth_at, settings.admin_session_minutes)
     return await service.require_admin(current.user_id)
+
+
+async def require_fresh_admin(
+    current: CurrentUserDep,
+    settings: SettingsDep,
+    service: Annotated[AuthService, Depends(get_auth_service)],
+) -> UserRead:
+    _require_fresh_enough(current.auth_at, settings.admin_reauth_minutes)
+    return await service.require_admin(current.user_id)
+
+
+# Only the destructive routes need the actor injected; reads are covered by the
+# router-level guard alone, so there is deliberately no plain `AdminDep`.
+FreshAdminDep = Annotated[UserRead, Depends(require_fresh_admin)]
+
+
+def get_audit_recorder(session: SessionDep) -> AuditRecorder:
+    return AuditRecorder(AdminAuditRepository(session))
+
+
+def get_admin_user_service(
+    session: SessionDep, settings: SettingsDep
+) -> AdminUserService:
+    return AdminUserService(
+        UserRepository(session),
+        AdminUserRepository(session),
+        AuditRecorder(AdminAuditRepository(session)),
+        settings,
+    )

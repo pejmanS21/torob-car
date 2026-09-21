@@ -162,3 +162,34 @@ async def test_password_and_logout_all_need_a_session(api: AsyncClient) -> None:
             401,
             "not_authenticated",
         )
+
+
+async def test_reauth_restores_a_stale_admin_window(api: AsyncClient) -> None:
+    """A token whose auth_at is old must be refused by admin routes, and /auth/reauth
+    must restore access without the user logging out."""
+    await api.post(f"{AUTH}/register", json=CREDENTIALS)
+    stale = encode_token(
+        TokenClaims(uuid.UUID(int=1), 0, UserRole.ADMIN, auth_at=0),
+        TokenType.ACCESS,
+        TEST_JWT_SECRET,
+        timedelta(minutes=5),
+    )
+    refused = await api.get(
+        "/api/v1/admin/stats", headers={"cookie": f"access_token={stale}"}
+    )
+    assert (refused.status_code, _error_code(refused)) == (403, "admin_reauth_required")
+
+    accepted = await api.post(f"{AUTH}/reauth", json={"password": PASSWORD})
+    assert accepted.status_code == 200
+    assert _cookie(accepted, "access_token")
+
+
+async def test_reauth_rejects_the_wrong_password(api: AsyncClient) -> None:
+    await api.post(f"{AUTH}/register", json=CREDENTIALS)
+    response = await api.post(f"{AUTH}/reauth", json={"password": "not my password"})
+    assert (response.status_code, _error_code(response)) == (401, "invalid_credentials")
+
+
+async def test_reauth_needs_a_session(api: AsyncClient) -> None:
+    response = await api.post(f"{AUTH}/reauth", json={"password": PASSWORD})
+    assert (response.status_code, _error_code(response)) == (401, "not_authenticated")
