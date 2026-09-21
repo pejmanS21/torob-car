@@ -1,0 +1,147 @@
+.shell {
+  display: grid;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.state {
+  padding: 32px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--fill);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tabActive {
+  background: var(--red);
+  color: #fff;
+}
+
+.body {
+  display: grid;
+  gap: 16px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  display: grid;
+  gap: 4px;
+}
+
+.tileValue {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.tileLabel {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.heading {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.listRow {
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.search {
+  display: flex;
+  gap: 8px;
+}
+
+.search input {
+  flex: 1;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.search button {
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  font-weight: 600;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: start;
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+}
+
+.rowActions button {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.total {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--red-soft);
+  color: var(--red-ink);
+  font-size: 13px;
+}
