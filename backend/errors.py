@@ -126,11 +126,14 @@ def invalid_search_error(message: str, error: ValidationError) -> InvalidSearchE
     user-supplied input (query params, free-text query) is a 422, not a 500.
     Only call this at an actual user-input boundary — not for a corrupted cache
     payload, which must stay a 500."""
-    # include_input=False for the same reason the handler below strips it: the raw
-    # user value must never ride back out in an error envelope.
-    details = error.errors(
-        include_url=False, include_context=False, include_input=False
-    )
+    # "input" is the raw user value and must never ride back out in an envelope;
+    # "url" and "ctx" are noise. Filtered by key rather than by keyword argument so
+    # this path and _handle_validation_error below share one mechanism.
+    noise = {"input", "url", "ctx"}
+    details = [
+        {key: value for key, value in entry.items() if key not in noise}
+        for entry in error.errors()
+    ]
     return InvalidSearchError(message, {"errors": details})
 
 
@@ -148,9 +151,10 @@ async def _handle_validation_error(
 ) -> JSONResponse:
     # `error.errors()` includes the raw submitted value under "input" — for a password
     # field that is the plaintext password. Strip it before it reaches any log, APM or
-    # error tracker; loc/msg/type stay so the response is still useful. (FastAPI's
-    # RequestValidationError.errors() takes no kwargs, unlike pydantic's
-    # ValidationError.errors() used in invalid_search_error above — filter by hand.)
+    # error tracker; loc/msg/type stay so the response is still useful. Filtering by
+    # key (rather than by keyword argument) also keeps this identical to
+    # invalid_search_error above, and works for RequestValidationError, whose
+    # errors() takes no kwargs at all.
     details = [
         {key: value for key, value in entry.items() if key != "input"}
         for entry in error.errors()
