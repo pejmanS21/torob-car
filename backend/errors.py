@@ -121,6 +121,32 @@ class AlertNotFoundError(AppError):
         super().__init__("Alert not found", {"alert_id": str(alert_id)})
 
 
+class AdminReauthRequiredError(AppError):
+    status_code = 403
+    code = "admin_reauth_required"
+
+    def __init__(self) -> None:
+        # Distinct from permission_denied: the caller IS an admin, their password
+        # entry is just too old. The UI shows a password prompt, not a dead end.
+        super().__init__("Re-authentication required")
+
+
+class CannotModifySelfError(AppError):
+    status_code = 409
+    code = "cannot_modify_self"
+
+    def __init__(self) -> None:
+        super().__init__("An admin cannot disable, demote or delete themselves")
+
+
+class LastAdminError(AppError):
+    status_code = 409
+    code = "last_admin"
+
+    def __init__(self) -> None:
+        super().__init__("The last active admin cannot be disabled, demoted or deleted")
+
+
 def invalid_search_error(message: str, error: ValidationError) -> InvalidSearchError:
     """A pydantic ValidationError raised while building a SearchIntent from
     user-supplied input (query params, free-text query) is a 422, not a 500.

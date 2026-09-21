@@ -57,3 +57,9 @@ def test_auth_defaults_match_the_spec(clean_env: None) -> None:
     assert settings.scrypt_n == 2**17
     assert settings.admin_email == ""
     assert settings.admin_password.get_secret_value() == ""
+
+
+def test_admin_window_defaults_match_the_spec(clean_env: None) -> None:
+    settings = Settings(_env_file=None, env="development")
+    assert settings.admin_session_minutes == 60
+    assert settings.admin_reauth_minutes == 5

@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     scrypt_n: int = 2**17
     admin_email: str = ""
     admin_password: SecretStr = SecretStr("")
+    admin_session_minutes: int = 60
+    admin_reauth_minutes: int = 5
 
     @property
     def is_development(self) -> bool:

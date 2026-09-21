@@ -6,10 +6,13 @@ from httpx import ASGITransport, AsyncClient
 
 from errors import (
     AccountDisabledError,
+    AdminReauthRequiredError,
     AlertNotFoundError,
     AppError,
+    CannotModifySelfError,
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
+    LastAdminError,
     ListingNotFoundError,
     NotAuthenticatedError,
     PermissionDeniedError,
@@ -93,6 +96,9 @@ async def test_unknown_route_uses_the_same_envelope() -> None:
         (PermissionDeniedError(), 403, "permission_denied"),
         (EmailAlreadyRegisteredError(), 409, "email_taken"),
         (AlertNotFoundError(uuid.UUID(int=9)), 404, "alert_not_found"),
+        (AdminReauthRequiredError(), 403, "admin_reauth_required"),
+        (CannotModifySelfError(), 409, "cannot_modify_self"),
+        (LastAdminError(), 409, "last_admin"),
     ],
 )
 def test_auth_errors_carry_their_status_and_code(

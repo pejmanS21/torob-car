@@ -144,3 +144,12 @@ class UserRole(StrEnum):
 class TokenType(StrEnum):
     ACCESS = "access"
     REFRESH = "refresh"
+
+
+class AdminAction(StrEnum):
+    USER_DISABLED = "user_disabled"
+    USER_ENABLED = "user_enabled"
+    USER_PROMOTED = "user_promoted"
+    USER_DEMOTED = "user_demoted"
+    USER_PASSWORD_RESET = "user_password_reset"
+    USER_DELETED = "user_deleted"
