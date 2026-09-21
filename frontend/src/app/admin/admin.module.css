@@ -132,6 +132,20 @@
   font-size: 12px;
 }
 
+.inlineReset {
+  display: flex;
+  gap: 6px;
+}
+
+.inlineReset input {
+  width: 120px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  font: inherit;
+}
+
 .total {
   color: var(--muted);
   font-size: 12px;
@@ -143,5 +157,14 @@
   border-radius: 8px;
   background: var(--red-soft);
   color: var(--red-ink);
+  font-size: 13px;
+}
+
+.success {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green);
   font-size: 13px;
 }

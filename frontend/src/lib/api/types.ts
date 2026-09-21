@@ -121,6 +121,7 @@ export interface AdminUserRow { id: string; email: string; role: UserRole; is_ac
 export interface AdminUserDetail extends AdminUserRow { saved_count: number; alert_count: number; }
 export interface AdminUserPage { items: AdminUserRow[]; total: number; }
 export interface AdminUserUpdate { is_active?: boolean; role?: UserRole; }
+export interface AdminPasswordReset { new: string; }
 export interface AuditRow { id: string; actor_id: string | null; actor_email: string; action: AdminAction; target_type: string; target_id: string | null; summary: Record<string, unknown>; created_at: string; }
 export interface AuditPage { items: AuditRow[]; total: number; }
 export interface AdminStats { users_total: number; users_active: number; admins_active: number; listings_total: number; newest_listing_fetched_at: string | null; recent_audit: AuditRow[]; }

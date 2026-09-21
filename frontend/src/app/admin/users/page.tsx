@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useState } from "react";
 import { ReauthPrompt } from "@/components/ReauthPrompt";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/account";
 import { ADMIN_ERROR_TEXT, needsReauth } from "@/lib/admin";
-import { ApiError, apiGet, apiPatch } from "@/lib/api/client";
-import type { AdminUserPage, AdminUserUpdate, UserRole } from "@/lib/api/types";
+import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api/client";
+import type { AdminPasswordReset, AdminUserPage, AdminUserUpdate, UserRole } from "@/lib/api/types";
 import { useApi } from "@/lib/api/useApi";
 import { fa } from "@/lib/format";
 import styles from "../admin.module.css";
@@ -11,8 +12,11 @@ import styles from "../admin.module.css";
 export default function AdminUsers() {
   const [term, setTerm] = useState("");
   const [appliedTerm, setAppliedTerm] = useState("");
-  const [notice, setNotice] = useState("");
-  const [pending, setPending] = useState<(() => Promise<void>) | null>(null);
+  const [notice, setNotice] = useState({ text: "", ok: false });
+  const [pending, setPending] = useState<{ action: () => Promise<void>; message: string } | null>(null);
+  const [resetFor, setResetFor] = useState<string | null>(null);
+  const [resetValue, setResetValue] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   // Same fetch-on-mount / refetch-on-key-change shape as ResultsScreen: no
   // raw effect calling setState, `retry()` reloads after a mutation.
@@ -20,18 +24,21 @@ export default function AdminUsers() {
     apiGet<AdminUserPage>("/admin/users", { term: appliedTerm || undefined }, signal),
   );
 
-  /** Runs an action; on `admin_reauth_required` parks it for the prompt to retry. */
-  const guarded = useCallback(async (action: () => Promise<void>) => {
+  /** Runs an action; on `admin_reauth_required` parks it for the prompt to retry.
+   *  `successMessage` (empty by default, matching the toggle/promote actions that
+   *  show nothing) is shown on success and carried along when parked for reauth. */
+  const guarded = useCallback(async (action: () => Promise<void>, successMessage = "") => {
     try {
       await action();
-      setNotice("");
+      setNotice({ text: successMessage, ok: true });
     } catch (error) {
-      if (needsReauth(error)) { setPending(() => action); return; }
-      setNotice(
-        error instanceof ApiError
+      if (needsReauth(error)) { setPending({ action, message: successMessage }); return; }
+      setNotice({
+        text: error instanceof ApiError
           ? ADMIN_ERROR_TEXT[error.code] ?? error.message
           : "انجام نشد",
-      );
+        ok: false,
+      });
     }
   }, []);
 
@@ -41,6 +48,21 @@ export default function AdminUsers() {
       users.retry();
     });
 
+  const resetPassword = (id: string) =>
+    guarded(async () => {
+      const body: AdminPasswordReset = { new: resetValue };
+      await apiPost(`/admin/users/${id}/password`, body);
+      setResetFor(null);
+      setResetValue("");
+    }, "رمز بازنشانی شد");
+
+  const deleteUser = (id: string) =>
+    guarded(async () => {
+      await apiDelete(`/admin/users/${id}`);
+      setConfirmDelete(null);
+      users.retry();
+    }, "کاربر حذف شد");
+
   return (
     <>
       <form className={styles.search}
@@ -49,7 +71,9 @@ export default function AdminUsers() {
           placeholder="جست‌وجوی ایمیل" dir="ltr" />
         <button type="submit">جست‌وجو</button>
       </form>
-      {notice && <p className={styles.error} role="alert">{notice}</p>}
+      {notice.text && (
+        <p className={notice.ok ? styles.success : styles.error} role="alert">{notice.text}</p>
+      )}
       {users.error && <p className={styles.error} role="alert">کاربران در دسترس نیست</p>}
       <table className={styles.table}>
         <thead>
@@ -72,6 +96,29 @@ export default function AdminUsers() {
                   })}>
                   {row.role === "admin" ? "حذف ادمینی" : "ادمین کن"}
                 </button>
+                {resetFor === row.id ? (
+                  <form className={styles.inlineReset}
+                    onSubmit={(event) => { event.preventDefault(); void resetPassword(row.id); }}>
+                    <input type="password" value={resetValue} dir="ltr" required
+                      minLength={MIN_PASSWORD_LENGTH} maxLength={MAX_PASSWORD_LENGTH}
+                      autoComplete="new-password" aria-label="رمز جدید"
+                      onChange={(event) => setResetValue(event.target.value)} />
+                    <button type="submit">تأیید</button>
+                  </form>
+                ) : (
+                  <button type="button"
+                    onClick={() => { setResetFor(row.id); setResetValue(""); }}>
+                    بازنشانی رمز
+                  </button>
+                )}
+                {confirmDelete === row.id ? (
+                  <>
+                    <button type="button" onClick={() => void deleteUser(row.id)}>تأیید حذف</button>
+                    <button type="button" onClick={() => setConfirmDelete(null)}>انصراف</button>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => setConfirmDelete(row.id)}>حذف</button>
+                )}
               </td>
             </tr>
           ))}
@@ -84,7 +131,7 @@ export default function AdminUsers() {
         onDone={() => {
           const retry = pending;
           setPending(null);
-          if (retry) void guarded(retry);
+          if (retry) void guarded(retry.action, retry.message);
         }}
       />
     </>
