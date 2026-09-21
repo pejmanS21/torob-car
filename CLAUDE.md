@@ -23,6 +23,14 @@ This is a **monolith fullstack** application kept in a single repository:
   at refresh, so bumping it revokes a user within one access-token lifetime.
   `require_admin` always re-reads the database. Server Components stay anonymous; all
   `/me` data loads client-side.
+- **Admin** — `/api/v1/admin` is guarded by a router-level `require_admin`; destructive
+  routes additionally require `require_fresh_admin`. Tokens carry an `auth_at` claim
+  stamped only by a real password entry — a refresh copies it through — so admin access
+  expires after `ADMIN_SESSION_MINUTES` even on a live session. Every admin mutation
+  writes an `admin_audit` row in the same transaction as the change. An unknown user id
+  on an admin route returns 404 `admin_user_not_found`, not 401 —
+  `AdminUserService._load` raises its own error rather than reusing `AuthService`'s,
+  because the id comes from the URL rather than the caller's token.
 - **Delivery** — Dockerized, orchestrated with Compose, shipped via GitHub Actions
   to Docker Hub.
 
@@ -88,7 +96,8 @@ the frontend, so the whole app is served from one origin.
 │   │   ├── health.py            # Liveness / readiness
 │   │   └── v1/
 │   │       ├── router.py        # Aggregates all v1 endpoint routers
-│   │       └── endpoints/       # One thin module per resource
+│   │       ├── endpoints/       # One thin module per resource
+│   │       └── admin/           # Guarded admin API (router-level require_admin)
 │   ├── models/                  # SQLAlchemy ORM models (persistence layer)
 │   ├── schemas/                 # Pydantic models (transport layer)
 │   ├── services/                # Business logic (classes)
@@ -171,6 +180,8 @@ LLM_BASE_URL=
 JWT_SECRET=
 ADMIN_EMAIL=
 ADMIN_PASSWORD=
+ADMIN_SESSION_MINUTES=60
+ADMIN_REAUTH_MINUTES=5
 # Frontend — Server Components call the backend directly on the Compose network;
 # the browser uses /api/v1 on the same origin through Traefik (no variable needed).
 API_INTERNAL_URL=http://backend:8000

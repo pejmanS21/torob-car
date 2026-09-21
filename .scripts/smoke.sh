@@ -123,5 +123,10 @@ echo "ok: the saved listing survived a reload"
 "${AB[@]}" wait "$BOOKMARK[aria-pressed='false']"
 echo "ok: logout cleared the saved listing"
 
+step "admin panel"
+"${AB[@]}" open "$BASE_URL/admin"
+"${AB[@]}" wait --load networkidle
+expect_text "ورود به ترب‌کار" "/admin bounces an anonymous visitor to /login"
+
 echo
 echo "SMOKE PASSED against $BASE_URL"
