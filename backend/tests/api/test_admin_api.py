@@ -1,15 +1,19 @@
 """Admin API. The first test is the important one: it proves no route escapes the
 guard."""
 
+import time
 import uuid
+from datetime import timedelta
 
 import pytest
 from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.admin.router import router as admin_router
-from enums import UserRole
+from core.security import TokenClaims, encode_token
+from enums import TokenType, UserRole
 from repositories.user_repository import UserRepository
+from tests.support import TEST_JWT_SECRET
 
 pytestmark = pytest.mark.db
 
@@ -100,6 +104,33 @@ async def test_getting_a_missing_user_returns_404(
     response = await api.get(f"{ADMIN}/users/{uuid.UUID(int=99)}")
     assert response.status_code == 404
     assert _error_code(response) == "admin_user_not_found"
+
+
+async def test_fresh_admin_window_is_distinct_from_the_session_window(
+    api: AsyncClient, seeded_session: AsyncSession
+) -> None:
+    """auth_at ten minutes ago sits inside the 60-minute admin window (`require_admin`)
+    but outside the 5-minute fresh window (`require_fresh_admin`). Without this test
+    the only stale-window case uses auth_at=0, which fails both windows at once, so a
+    destructive route that forgot FreshAdminDep would still pass every existing test."""
+    await _register(api, "admin@example.com")
+    await _promote(seeded_session, "admin@example.com")
+    admin = await UserRepository(seeded_session).get_by_email("admin@example.com")
+    assert admin is not None
+    ten_minutes_ago = int(time.time()) - 10 * 60
+    claims = TokenClaims(admin.id, admin.token_version, UserRole.ADMIN, ten_minutes_ago)
+    stale_fresh = encode_token(
+        claims, TokenType.ACCESS, TEST_JWT_SECRET, timedelta(minutes=5)
+    )
+    cookie = {"cookie": f"access_token={stale_fresh}"}
+
+    read = await api.get(f"{ADMIN}/users", headers=cookie)
+    assert read.status_code == 200
+
+    write = await api.patch(
+        f"{ADMIN}/users/{admin.id}", json={"is_active": True}, headers=cookie
+    )
+    assert (write.status_code, _error_code(write)) == (403, "admin_reauth_required")
 
 
 async def test_stats_reports_real_counts(

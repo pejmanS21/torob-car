@@ -1,5 +1,7 @@
 "use client";
-import { describeAudit } from "@/lib/admin";
+import { useState } from "react";
+import { ReauthPrompt } from "@/components/ReauthPrompt";
+import { describeAudit, needsReauth } from "@/lib/admin";
 import { apiGet } from "@/lib/api/client";
 import type { AdminStats } from "@/lib/api/types";
 import { useApi } from "@/lib/api/useApi";
@@ -10,9 +12,27 @@ export default function AdminDashboard() {
   const stats = useApi("admin-stats", (signal) =>
     apiGet<AdminStats>("/admin/stats", {}, signal),
   );
+  // A stale admin window 403s this read with no other button left to reopen
+  // ReauthPrompt (spec §3.2) — surface it here so reload-and-hope isn't the
+  // only recovery.
+  const [reauthDismissed, setReauthDismissed] = useState(false);
+  const reauth = (
+    <ReauthPrompt
+      open={needsReauth(stats.error) && !reauthDismissed}
+      onDone={() => { setReauthDismissed(false); stats.retry(); }}
+      onCancel={() => setReauthDismissed(true)}
+    />
+  );
 
   if (stats.loading) return <p className={styles.state}>در حال بارگذاری…</p>;
-  if (stats.error || !stats.data) return <p className={styles.state}>آمار در دسترس نیست</p>;
+  if (stats.error || !stats.data) {
+    return (
+      <>
+        <p className={styles.state}>آمار در دسترس نیست</p>
+        {reauth}
+      </>
+    );
+  }
 
   const tiles = [
     { label: "کاربران", value: stats.data.users_total },
@@ -40,6 +60,7 @@ export default function AdminDashboard() {
           <li className={styles.listRow}>هنوز اقدامی ثبت نشده</li>
         )}
       </ul>
+      {reauth}
     </>
   );
 }

@@ -3,6 +3,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { errorText, SERVICE_UNAVAILABLE } from "@/components/ErrorBanner";
 import { AUTH_ERROR_TEXT, MAX_PASSWORD_LENGTH } from "@/lib/account";
+import { safeNext } from "@/lib/admin";
 import { ApiError } from "@/lib/api/client";
 import { useAppState } from "@/state/AppState";
 import styles from "./login.module.css";
@@ -11,11 +12,6 @@ const messageFor = (error: unknown): string =>
   error instanceof ApiError
     ? AUTH_ERROR_TEXT[error.code] ?? errorText(error)
     : SERVICE_UNAVAILABLE;
-
-/** Only same-origin relative paths are honoured, so `?next=` cannot bounce a
- *  signed-in user to another site. */
-const safeNext = (next: string | null): string =>
-  next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
 function LoginForm() {
   const { user, authReady, login } = useAppState();

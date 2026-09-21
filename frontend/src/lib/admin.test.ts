@@ -1,7 +1,9 @@
 import { expect, test } from "bun:test";
 import { ApiError } from "./api/client";
-import { ADMIN_ERROR_TEXT, describeAudit, needsReauth } from "./admin";
+import { ADMIN_ERROR_TEXT, describeAudit, needsReauth, safeNext } from "./admin";
 import type { AuditRow } from "./api/types";
+
+const ORIGIN = "http://localhost:3000";
 
 const row = (action: AuditRow["action"]): AuditRow => ({
   id: "a", actor_id: "b", actor_email: "admin@example.com", action,
@@ -18,9 +20,22 @@ test("needsReauth fires only on the admin_reauth_required code", () => {
 
 test("every admin error code the UI can hit has Persian copy", () => {
   expect(Object.keys(ADMIN_ERROR_TEXT).sort()).toEqual([
-    "admin_reauth_required", "cannot_modify_self", "last_admin", "permission_denied",
+    "admin_reauth_required", "admin_user_not_found", "cannot_modify_self",
+    "last_admin", "permission_denied", "validation_error",
   ]);
   for (const text of Object.values(ADMIN_ERROR_TEXT)) expect(text.length).toBeGreaterThan(0);
+});
+
+test.each([
+  ["/\\evil.com"], ["//evil.com"], ["https://evil.com"], ["javascript:alert(1)"],
+  [null], [""],
+])("safeNext(%p) is blocked and falls back to \"/\"", (next) => {
+  expect(safeNext(next as string | null, ORIGIN)).toBe("/");
+});
+
+test("safeNext preserves a same-origin path, with its query string", () => {
+  expect(safeNext("/admin", ORIGIN)).toBe("/admin");
+  expect(safeNext("/admin?tab=x", ORIGIN)).toBe("/admin?tab=x");
 });
 
 test("describeAudit names the actor and the target", () => {

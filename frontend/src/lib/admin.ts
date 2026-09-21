@@ -7,10 +7,31 @@ export const ADMIN_ERROR_TEXT: Record<string, string> = {
   permission_denied: "دسترسی ادمین نداری",
   cannot_modify_self: "روی حساب خودت نمی‌تونی این کار رو انجام بدی",
   last_admin: "آخرین ادمین فعال رو نمی‌شه غیرفعال یا حذف کرد",
+  admin_user_not_found: "این کاربر دیگر وجود ندارد",
+  validation_error: "مقدار واردشده معتبر نیست",
 };
 
 export const needsReauth = (error: unknown): boolean =>
   error instanceof ApiError && error.code === "admin_reauth_required";
+
+/** Resolves `next` against `origin` (the current origin by default) and requires
+ *  their origins to match, rather than pattern-matching the string. The WHATWG URL
+ *  parser folds a leading backslash to a slash for special schemes, so
+ *  `"/\evil.com"` would pass a `startsWith("/")` check yet resolve off-origin
+ *  (CWE-601). `origin` is a parameter — not always `window.location.origin` — so
+ *  this is testable without a DOM. */
+export function safeNext(
+  next: string | null,
+  origin: string = typeof window === "undefined" ? "" : window.location.origin,
+): string {
+  if (!next) return "/";
+  try {
+    const resolved = new URL(next, origin);
+    return resolved.origin === origin ? resolved.pathname + resolved.search : "/";
+  } catch {
+    return "/";
+  }
+}
 
 const ACTION_TEXT: Record<AdminAction, string> = {
   user_disabled: "غیرفعال کرد",

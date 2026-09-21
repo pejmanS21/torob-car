@@ -7,9 +7,11 @@ import { ApiError, apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api/client
 import type { AdminPasswordReset, AdminUserPage, AdminUserUpdate, UserRole } from "@/lib/api/types";
 import { useApi } from "@/lib/api/useApi";
 import { fa } from "@/lib/format";
+import { useAppState } from "@/state/AppState";
 import styles from "../admin.module.css";
 
 export default function AdminUsers() {
+  const { user: currentUser } = useAppState();
   const [term, setTerm] = useState("");
   const [appliedTerm, setAppliedTerm] = useState("");
   const [notice, setNotice] = useState({ text: "", ok: false });
@@ -17,6 +19,9 @@ export default function AdminUsers() {
   const [resetFor, setResetFor] = useState<string | null>(null);
   const [resetValue, setResetValue] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // Same escape hatch as the dashboard (F1): a stale admin window 403s this read
+  // with no mutation button left to open ReauthPrompt, so surface it here too.
+  const [readReauthDismissed, setReadReauthDismissed] = useState(false);
 
   // Same fetch-on-mount / refetch-on-key-change shape as ResultsScreen: no
   // raw effect calling setState, `retry()` reloads after a mutation.
@@ -48,13 +53,18 @@ export default function AdminUsers() {
       users.retry();
     });
 
-  const resetPassword = (id: string) =>
-    guarded(async () => {
+  const resetPassword = (id: string) => {
+    // replace_password bumps token_version, so an admin resetting their own
+    // password signs themselves out. That IS correct — only say so (F6).
+    const successMessage =
+      currentUser?.id === id ? "رمز بازنشانی شد؛ باید دوباره وارد شوی" : "رمز بازنشانی شد";
+    return guarded(async () => {
       const body: AdminPasswordReset = { new: resetValue };
       await apiPost(`/admin/users/${id}/password`, body);
       setResetFor(null);
       setResetValue("");
-    }, "رمز بازنشانی شد");
+    }, successMessage);
+  };
 
   const deleteUser = (id: string) =>
     guarded(async () => {
@@ -133,6 +143,11 @@ export default function AdminUsers() {
           setPending(null);
           if (retry) void guarded(retry.action, retry.message);
         }}
+      />
+      <ReauthPrompt
+        open={needsReauth(users.error) && !readReauthDismissed}
+        onCancel={() => setReadReauthDismissed(true)}
+        onDone={() => { setReadReauthDismissed(false); users.retry(); }}
       />
     </>
   );

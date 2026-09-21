@@ -1,7 +1,6 @@
 """User administration. Every mutation is guarded against lockout and audited in the
 same transaction as the change itself."""
 
-import asyncio
 import uuid
 from typing import Any
 
@@ -21,6 +20,7 @@ from schemas.admin import (
 )
 from schemas.auth import UserRead
 from services.audit_recorder import AuditRecorder
+from services.auth_service import _in_hash_pool
 
 TARGET_USER = "user"
 
@@ -81,9 +81,9 @@ class AdminUserService:
     ) -> None:
         user = await self._load(user_id)
         password = payload.new.get_secret_value()
-        new_hash = await asyncio.to_thread(
-            hash_password, password, self._settings.scrypt_n
-        )
+        # The bounded pool auth_service already defines: each scrypt hash holds
+        # ~128 MiB, so the default unbounded executor could exhaust the container.
+        new_hash = await _in_hash_pool(hash_password, password, self._settings.scrypt_n)
         # replace_password also bumps token_version, signing the user out everywhere.
         await self._users.replace_password(user, new_hash)
         await self._audit.record(
