@@ -31,6 +31,8 @@ from repositories.user_repository import UserRepository
 from schemas.auth import UserRead
 from schemas.search import SearchIntent
 from services.account_service import AccountService
+from services.admin_audit_service import AdminAuditService
+from services.admin_stats_service import AdminStatsService
 from services.admin_user_service import AdminUserService
 from services.assistant_service import AssistantService
 from services.audit_recorder import AuditRecorder
@@ -232,4 +234,16 @@ def get_admin_user_service(
         AdminUserRepository(session),
         AuditRecorder(AdminAuditRepository(session)),
         settings,
+    )
+
+
+def get_admin_audit_service(session: SessionDep) -> AdminAuditService:
+    return AdminAuditService(AdminAuditRepository(session))
+
+
+def get_admin_stats_service(session: SessionDep) -> AdminStatsService:
+    return AdminStatsService(
+        AdminUserRepository(session),
+        ListingRepository(session),
+        AuditRecorder(AdminAuditRepository(session)),
     )
