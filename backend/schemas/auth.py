@@ -47,6 +47,10 @@ class PasswordChange(BaseModel):
     new: NewPassword
 
 
+class ReauthRequest(BaseModel):
+    password: GivenPassword
+
+
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

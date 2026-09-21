@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import secrets
+import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -30,7 +31,13 @@ from errors import (
 )
 from models.user import User
 from repositories.user_repository import UserRepository
-from schemas.auth import LoginRequest, PasswordChange, UserCreate, UserRead
+from schemas.auth import (
+    LoginRequest,
+    PasswordChange,
+    ReauthRequest,
+    UserCreate,
+    UserRead,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +49,11 @@ _HASH_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="scrypt")
 async def _in_hash_pool[T](function: Callable[..., T], *args: object) -> T:
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(_HASH_POOL, function, *args)
+
+
+def _now() -> int:
+    """Unix seconds — the unit of the `auth_at` claim."""
+    return int(time.time())
 
 
 @lru_cache
@@ -69,7 +81,7 @@ class AuthService:
         )
         if user is None:
             raise EmailAlreadyRegisteredError()
-        return self._issue(user)
+        return self._issue(user, _now())
 
     async def authenticate(self, payload: LoginRequest) -> AuthResult:
         user = await self._users.get_by_email(payload.email)
@@ -85,7 +97,7 @@ class AuthService:
         if not user.is_active:
             raise AccountDisabledError()
         await self._users.record_login(user)
-        return self._issue(user)
+        return self._issue(user, _now())
 
     async def refresh(self, refresh_token: str | None) -> AuthResult:
         if refresh_token is None:
@@ -101,7 +113,9 @@ class AuthService:
             raise NotAuthenticatedError()
         if not user.is_active:
             raise AccountDisabledError()
-        return self._issue(user)
+        # Carry the ORIGINAL auth_at through. A refresh proves the session is alive,
+        # not that the human is present, so it must not renew admin freshness.
+        return self._issue(user, claims.auth_at)
 
     async def change_password(
         self, user_id: uuid.UUID, payload: PasswordChange
@@ -112,7 +126,17 @@ class AuthService:
             raise InvalidCredentialsError()
         new_hash = await self._hash(payload.new.get_secret_value())
         await self._users.replace_password(user, new_hash)
-        return self._issue(user)  # a fresh pair, so this device stays logged in
+        return self._issue(user, _now())  # a fresh pair, so this device stays logged in
+
+    async def reauth(self, user_id: uuid.UUID, payload: ReauthRequest) -> AuthResult:
+        """Re-stamp `auth_at` after a real password entry. Deliberately does NOT bump
+        `token_version`: proving you are present should not sign out your other
+        devices, unlike a password change."""
+        user = await self._load(user_id)
+        password = payload.password.get_secret_value()
+        if not await _in_hash_pool(verify_password, password, user.password_hash):
+            raise InvalidCredentialsError()
+        return self._issue(user, _now())
 
     async def logout_all(self, user_id: uuid.UUID) -> None:
         await self._users.bump_token_version(await self._load(user_id))
@@ -163,8 +187,8 @@ class AuthService:
             raise AccountDisabledError()
         return user
 
-    def _issue(self, user: User) -> AuthResult:
-        claims = TokenClaims(user.id, user.token_version, user.role)
+    def _issue(self, user: User, auth_at: int) -> AuthResult:
+        claims = TokenClaims(user.id, user.token_version, user.role, auth_at)
         tokens = issue_token_pair(
             claims,
             self._secret,

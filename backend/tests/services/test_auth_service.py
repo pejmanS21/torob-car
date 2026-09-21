@@ -22,7 +22,7 @@ from errors import (
 )
 from models.user import User
 from repositories.user_repository import UserRepository
-from schemas.auth import LoginRequest, PasswordChange, UserCreate
+from schemas.auth import LoginRequest, PasswordChange, ReauthRequest, UserCreate
 from services import auth_service
 from services.auth_service import AuthService
 from tests.support import TEST_JWT_SECRET, TEST_SCRYPT_N, fast_auth_settings
@@ -55,8 +55,10 @@ def _users(**returns: object) -> AsyncMock:
     return users
 
 
-def _refresh_token(user: User, lifetime: timedelta = timedelta(days=1)) -> str:
-    claims = TokenClaims(user.id, user.token_version, None)
+def _refresh_token(
+    user: User, lifetime: timedelta = timedelta(days=1), auth_at: int = 1
+) -> str:
+    claims = TokenClaims(user.id, user.token_version, None, auth_at)
     return encode_token(claims, TokenType.REFRESH, TEST_JWT_SECRET, lifetime)
 
 
@@ -67,7 +69,12 @@ async def test_register_hashes_the_password_and_issues_tokens() -> None:
     assert (email, role) == (EMAIL, UserRole.USER)
     assert stored_hash != PASSWORD and verify_password(PASSWORD, stored_hash)
     claims = decode_token(result.tokens.access, TEST_JWT_SECRET, TokenType.ACCESS)
-    assert claims == TokenClaims(uuid.UUID(int=42), 0, UserRole.USER)
+    assert (claims.user_id, claims.token_version, claims.role) == (
+        uuid.UUID(int=42),
+        0,
+        UserRole.USER,
+    )
+    assert claims.auth_at > 0
     assert result.user.email == EMAIL
 
 
@@ -121,7 +128,7 @@ async def test_refresh_rejects_a_missing_stale_expired_or_wrong_type_token() -> 
     stale = _refresh_token(_user(token_version=0))
     expired = _refresh_token(user, timedelta(minutes=-1))
     access = encode_token(
-        TokenClaims(user.id, 1, UserRole.USER),
+        TokenClaims(user.id, 1, UserRole.USER, auth_at=1),
         TokenType.ACCESS,
         TEST_JWT_SECRET,
         timedelta(minutes=1),
@@ -224,3 +231,47 @@ async def test_ensure_admin_skips_when_a_variable_is_empty(
 async def test_ensure_admin_fails_loudly_on_a_weak_password() -> None:
     with pytest.raises(ValidationError):
         await _service(_users(get_by_email=None)).ensure_admin(EMAIL, "short")
+
+
+async def test_login_stamps_auth_at_and_refresh_preserves_it() -> None:
+    user = _user()
+    service = _service(_users(get_by_email=user, get_by_id=user))
+    logged_in = await service.authenticate(LoginRequest(email=EMAIL, password=PASSWORD))
+    stamped = decode_token(logged_in.tokens.access, TEST_JWT_SECRET, TokenType.ACCESS)
+    assert stamped.auth_at > 0
+
+    refreshed = await service.refresh(logged_in.tokens.refresh)
+    carried = decode_token(refreshed.tokens.access, TEST_JWT_SECRET, TokenType.ACCESS)
+    assert carried.auth_at == stamped.auth_at  # a refresh must NOT renew freshness
+
+
+async def test_reauth_restamps_without_logging_other_devices_out() -> None:
+    user = _user()
+    users = _users(get_by_id=user)
+    old = TokenClaims(user.id, user.token_version, user.role, auth_at=1)
+    result = await _service(users).reauth(user.id, ReauthRequest(password=PASSWORD))
+    fresh = decode_token(result.tokens.access, TEST_JWT_SECRET, TokenType.ACCESS)
+    assert fresh.auth_at > old.auth_at
+    users.bump_token_version.assert_not_awaited()  # other sessions survive
+
+
+async def test_reauth_with_the_wrong_password_is_rejected() -> None:
+    users = _users(get_by_id=_user())
+    with pytest.raises(InvalidCredentialsError):
+        await _service(users).reauth(uuid.UUID(int=42), ReauthRequest(password="wrong"))
+
+
+async def test_reauth_refuses_a_disabled_account() -> None:
+    users = _users(get_by_id=_user(is_active=False))
+    payload = ReauthRequest(password=PASSWORD)
+    with pytest.raises(AccountDisabledError):
+        await _service(users).reauth(uuid.UUID(int=42), payload)
+
+
+async def test_changing_the_password_restamps_auth_at() -> None:
+    user = _user()
+    service = _service(_users(get_by_id=user))
+    change = PasswordChange(current=PASSWORD, new="a brand new password")
+    result = await service.change_password(user.id, change)
+    claims = decode_token(result.tokens.access, TEST_JWT_SECRET, TokenType.ACCESS)
+    assert claims.auth_at > 0  # they just proved they know the password
