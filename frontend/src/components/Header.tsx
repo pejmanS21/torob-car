@@ -65,6 +65,9 @@ export function Header() {
                   </summary>
                   <div className={styles.menu}>
                     <div className={styles.menuEmail} dir="ltr">{user.email}</div>
+                    {user.role === "admin" && (
+                      <Link href="/admin" className={styles.menuLink}>پنل مدیریت</Link>
+                    )}
                     <button type="button" className={styles.menuItem} onClick={logout}>خروج</button>
                   </div>
                 </details>
