@@ -85,7 +85,8 @@ async def test_a_duplicate_email_is_409_and_a_short_password_is_422(
 
 
 async def test_an_expired_access_token_says_token_expired(api: AsyncClient) -> None:
-    claims = TokenClaims(uuid.UUID(int=1), 0, UserRole.USER)
+    # auth_at is irrelevant here — this test is about the exp claim, not freshness.
+    claims = TokenClaims(uuid.UUID(int=1), 0, UserRole.USER, auth_at=0)
     expired = encode_token(
         claims, TokenType.ACCESS, TEST_JWT_SECRET, timedelta(minutes=-1)
     )
