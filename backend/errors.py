@@ -126,7 +126,11 @@ def invalid_search_error(message: str, error: ValidationError) -> InvalidSearchE
     user-supplied input (query params, free-text query) is a 422, not a 500.
     Only call this at an actual user-input boundary — not for a corrupted cache
     payload, which must stay a 500."""
-    details = error.errors(include_url=False, include_context=False)
+    # include_input=False for the same reason the handler below strips it: the raw
+    # user value must never ride back out in an error envelope.
+    details = error.errors(
+        include_url=False, include_context=False, include_input=False
+    )
     return InvalidSearchError(message, {"errors": details})
 
 
