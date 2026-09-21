@@ -10,7 +10,7 @@ const TABS = [
   { href: "/admin/users", label: "کاربران" },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { user, authReady } = useAppState();
   const router = useRouter();
   const pathname = usePathname();

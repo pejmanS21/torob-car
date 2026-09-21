@@ -8,11 +8,11 @@ import styles from "./ReauthPrompt.module.css";
 
 /** Shown when the API answers `admin_reauth_required`. On success the caller retries
  *  its action once; the admin is never signed out, only asked to prove presence. */
-export function ReauthPrompt({ open, onDone, onCancel }: {
+export function ReauthPrompt({ open, onDone, onCancel }: Readonly<{
   open: boolean;
   onDone: () => void;
   onCancel: () => void;
-}) {
+}>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
