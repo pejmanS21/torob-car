@@ -5,7 +5,20 @@ from core.config import Settings
 from enums import LlmProvider
 
 
-def test_settings_defaults_need_no_environment() -> None:
+@pytest.fixture
+def clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Strip every Settings key from the process environment.
+
+    `_env_file=None` only stops pydantic-settings reading the dotenv FILE; it still
+    reads real environment variables. `.scripts/sonar.sh` does `set -a; source .env`,
+    which exports every key, so a populated `.env` would otherwise leak into tests that
+    assert defaults. Derived from `model_fields`, so a new setting is covered too.
+    """
+    for name in Settings.model_fields:
+        monkeypatch.delenv(name.upper(), raising=False)
+
+
+def test_settings_defaults_need_no_environment(clean_env: None) -> None:
     settings = Settings(_env_file=None)
     assert settings.llm_provider is LlmProvider.GOOGLE
     assert settings.search_cache_ttl_seconds == 600
@@ -37,7 +50,7 @@ def test_empty_jwt_secret_in_development_becomes_a_random_secret() -> None:
     assert first.jwt_secret.get_secret_value() != second.jwt_secret.get_secret_value()
 
 
-def test_auth_defaults_match_the_spec() -> None:
+def test_auth_defaults_match_the_spec(clean_env: None) -> None:
     settings = Settings(_env_file=None, env="development")
     assert settings.access_token_minutes == 15
     assert settings.refresh_token_days == 30
