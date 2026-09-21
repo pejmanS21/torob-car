@@ -28,18 +28,22 @@ export function AuthDialog() {
     if (!authOpen && dialog.open) dialog.close();
   }, [authOpen]);
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget; // gone after the first await
     const data = new FormData(form);
     setBusy(true);
     setError("");
     try {
-      await (mode === "login" ? login : register)(String(data.get("email")), String(data.get("password")));
+      // <input type="email"/"password"> values are always strings at runtime.
+      await (mode === "login" ? login : register)(
+        data.get("email") as string,
+        data.get("password") as string,
+      );
       form.reset();
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.code === "email_taken") setMode("login");
-      setError(messageFor(caught));
+    } catch (error_) {
+      if (error_ instanceof ApiError && error_.code === "email_taken") setMode("login");
+      setError(messageFor(error_));
     } finally {
       setBusy(false);
     }
@@ -59,10 +63,10 @@ export function AuthDialog() {
         ))}
       </div>
       <form className={styles.form} onSubmit={submit}>
-        <label className={styles.field}>ایمیل
+        <label className={styles.field}><span>ایمیل</span>
           <input name="email" type="email" required autoComplete="email" dir="ltr" />
         </label>
-        <label className={styles.field}>رمز عبور
+        <label className={styles.field}><span>رمز عبور</span>
           <input name="password" type="password" required dir="ltr"
             minLength={mode === "register" ? MIN_PASSWORD_LENGTH : undefined} maxLength={MAX_PASSWORD_LENGTH}
             autoComplete={mode === "register" ? "new-password" : "current-password"} />

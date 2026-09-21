@@ -52,7 +52,7 @@ def _clear_auth_cookies(response: Response, settings: Settings) -> None:
         )
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     payload: UserCreate, response: Response, service: ServiceDep, settings: SettingsDep
 ) -> UserRead:
@@ -61,7 +61,7 @@ async def register(
     return result.user
 
 
-@router.post("/login", response_model=UserRead)
+@router.post("/login")
 async def login(
     payload: LoginRequest,
     response: Response,
@@ -73,7 +73,7 @@ async def login(
     return result.user
 
 
-@router.post("/refresh", response_model=UserRead)
+@router.post("/refresh")
 async def refresh(
     response: Response,
     service: ServiceDep,

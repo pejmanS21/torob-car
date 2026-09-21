@@ -41,6 +41,25 @@ function commitPersisted<T>(
   return result;
 }
 
+// addAlert's two commitPersisted updaters, extracted so the .then/.catch call
+// sites pass a named function instead of nesting another arrow inline (Sonar
+// max-nested-functions). `local` is matched BY REFERENCE against `p.alerts`,
+// so the optimistic add/revert stays keyed to the exact object addAlert
+// pushed — never rebuild or clone it before passing it here.
+function attachAlertServerId(local: PriceAlert, serverId: string) {
+  return (p: Persisted): Commit<undefined> => ({
+    next: { ...p, alerts: withAlertId(p.alerts, local, serverId) },
+    result: undefined,
+  });
+}
+
+function revertOptimisticAlert(local: PriceAlert) {
+  return (p: Persisted): Commit<undefined> => ({
+    next: { ...p, alerts: p.alerts.filter((a) => a !== local) },
+    result: undefined,
+  });
+}
+
 export interface AppStateValue extends Persisted {
   user: UserRead | null; loggedIn: boolean; authReady: boolean; authOpen: boolean;
   bellOpen: boolean; chatOpen: boolean; chatMessages: ChatMessage[]; chatBusy: boolean; avatarAnimation: AvatarAnimation; toast: string;
@@ -183,9 +202,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: [...p.alerts, alert] }, result: undefined }));
     showToast("هشدار قیمت ذخیره شد");
     apiPost<PriceAlertRead>("/me/alerts", toAlertBody(alert))
-      .then((stored) => commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: withAlertId(p.alerts, alert, stored.id) }, result: undefined })))
+      .then((stored) => commitPersisted(persistedRef, setPersisted, attachAlertServerId(alert, stored.id)))
       .catch(() => {
-        commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, alerts: p.alerts.filter((a) => a !== alert) }, result: undefined }));
+        commitPersisted(persistedRef, setPersisted, revertOptimisticAlert(alert));
         showToast(SYNC_FAILED);
       });
   }, [showToast]);

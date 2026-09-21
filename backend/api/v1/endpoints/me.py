@@ -23,12 +23,12 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 AccountServiceDep = Annotated[AccountService, Depends(get_account_service)]
 
 
-@router.get("", response_model=UserRead)
+@router.get("")
 async def read_me(current: CurrentUserDep, service: AuthServiceDep) -> UserRead:
     return await service.get_user(current.user_id)
 
 
-@router.get("/saved", response_model=list[uuid.UUID])
+@router.get("/saved")
 async def read_saved(
     current: CurrentUserDep, service: AccountServiceDep
 ) -> list[uuid.UUID]:
@@ -49,16 +49,14 @@ async def unsave_listing(
     await service.unsave_listing(current.user_id, listing_id)
 
 
-@router.get("/alerts", response_model=list[PriceAlertRead])
+@router.get("/alerts")
 async def read_alerts(
     current: CurrentUserDep, service: AccountServiceDep
 ) -> list[PriceAlertRead]:
     return await service.list_alerts(current.user_id)
 
 
-@router.post(
-    "/alerts", response_model=PriceAlertRead, status_code=status.HTTP_201_CREATED
-)
+@router.post("/alerts", status_code=status.HTTP_201_CREATED)
 async def create_alert(
     payload: PriceAlertCreate, current: CurrentUserDep, service: AccountServiceDep
 ) -> PriceAlertRead:
@@ -72,7 +70,7 @@ async def delete_alert(
     await service.delete_alert(current.user_id, alert_id)
 
 
-@router.post("/import", response_model=AccountState)
+@router.post("/import")
 async def import_state(
     payload: ImportRequest, current: CurrentUserDep, service: AccountServiceDep
 ) -> AccountState:
