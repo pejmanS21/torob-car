@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from errors import (
     AccountDisabledError,
     AdminReauthRequiredError,
+    AdminUserNotFoundError,
     AlertNotFoundError,
     AppError,
     CannotModifySelfError,
@@ -99,6 +100,7 @@ async def test_unknown_route_uses_the_same_envelope() -> None:
         (AdminReauthRequiredError(), 403, "admin_reauth_required"),
         (CannotModifySelfError(), 409, "cannot_modify_self"),
         (LastAdminError(), 409, "last_admin"),
+        (AdminUserNotFoundError(uuid.UUID(int=1)), 404, "admin_user_not_found"),
     ],
 )
 def test_auth_errors_carry_their_status_and_code(

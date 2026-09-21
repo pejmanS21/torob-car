@@ -147,6 +147,14 @@ class LastAdminError(AppError):
         super().__init__("The last active admin cannot be disabled, demoted or deleted")
 
 
+class AdminUserNotFoundError(AppError):
+    status_code = 404
+    code = "admin_user_not_found"
+
+    def __init__(self, user_id: uuid.UUID) -> None:
+        super().__init__("User not found", {"user_id": str(user_id)})
+
+
 def invalid_search_error(message: str, error: ValidationError) -> InvalidSearchError:
     """A pydantic ValidationError raised while building a SearchIntent from
     user-supplied input (query params, free-text query) is a 422, not a 500.

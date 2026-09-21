@@ -8,7 +8,7 @@ from typing import Any
 from core.config import Settings
 from core.security import hash_password
 from enums import AdminAction, UserRole
-from errors import CannotModifySelfError, LastAdminError, NotAuthenticatedError
+from errors import AdminUserNotFoundError, CannotModifySelfError, LastAdminError
 from models.user import User
 from repositories.admin_user_repository import AdminUserRepository
 from repositories.user_repository import UserRepository
@@ -121,7 +121,7 @@ class AdminUserService:
     async def _load(self, user_id: uuid.UUID) -> User:
         user = await self._users.get_by_id(user_id)
         if user is None:
-            raise NotAuthenticatedError()
+            raise AdminUserNotFoundError(user_id)
         return user
 
     async def _detail(self, user: User) -> AdminUserDetail:

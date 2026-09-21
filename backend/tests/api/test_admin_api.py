@@ -92,6 +92,16 @@ async def test_disabling_a_user_writes_an_audit_row(
     assert audit["items"][0]["actor_email"] == "admin@example.com"
 
 
+async def test_getting_a_missing_user_returns_404(
+    api: AsyncClient, seeded_session: AsyncSession
+) -> None:
+    await _register(api, "admin@example.com")
+    await _promote(seeded_session, "admin@example.com")
+    response = await api.get(f"{ADMIN}/users/{uuid.UUID(int=99)}")
+    assert response.status_code == 404
+    assert _error_code(response) == "admin_user_not_found"
+
+
 async def test_stats_reports_real_counts(
     api: AsyncClient, seeded_session: AsyncSession
 ) -> None:

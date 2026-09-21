@@ -6,7 +6,7 @@ import pytest
 
 from core.security import verify_password
 from enums import AdminAction, UserRole
-from errors import CannotModifySelfError, LastAdminError, NotAuthenticatedError
+from errors import AdminUserNotFoundError, CannotModifySelfError, LastAdminError
 from models.user import User
 from repositories.admin_user_repository import AdminUserRepository
 from repositories.user_repository import UserRepository
@@ -122,5 +122,5 @@ async def test_the_reset_password_never_reaches_the_audit_summary() -> None:
 
 async def test_acting_on_a_missing_user_raises() -> None:
     doubles = Doubles(None, [ACTOR_ID])
-    with pytest.raises(NotAuthenticatedError):
+    with pytest.raises(AdminUserNotFoundError):
         await doubles.service.get_user(TARGET_ID)
