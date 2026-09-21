@@ -17,7 +17,9 @@ from errors import NotAuthenticatedError, TokenExpiredError
 
 FAST_N = 2**4
 SECRET = "s" * 32
-CLAIMS = TokenClaims(user_id=uuid.UUID(int=1), token_version=3, role=UserRole.ADMIN)
+CLAIMS = TokenClaims(
+    user_id=uuid.UUID(int=1), token_version=3, role=UserRole.ADMIN, auth_at=0
+)
 ONE_MINUTE = timedelta(minutes=1)
 
 
@@ -92,3 +94,44 @@ def test_the_refresh_token_carries_no_role() -> None:
     pair = issue_token_pair(CLAIMS, SECRET, ONE_MINUTE, ONE_MINUTE)
     assert decode_token(pair.access, SECRET, TokenType.ACCESS).role is UserRole.ADMIN
     assert decode_token(pair.refresh, SECRET, TokenType.REFRESH).role is None
+
+
+def test_auth_at_round_trips_through_a_token() -> None:
+    claims = TokenClaims(uuid.UUID(int=1), 3, UserRole.ADMIN, auth_at=1_700_000_000)
+    token = encode_token(claims, TokenType.ACCESS, SECRET, ONE_MINUTE)
+    assert decode_token(token, SECRET, TokenType.ACCESS).auth_at == 1_700_000_000
+
+
+def test_a_token_minted_before_this_feature_decodes_as_stale() -> None:
+    """No `at` claim means the token predates admin hardening. Defaulting to 0 fails
+    every freshness window, which forces exactly one re-authentication."""
+    payload = {
+        "sub": str(uuid.UUID(int=1)),
+        "ver": 0,
+        "typ": "access",
+        "exp": 9999999999,
+    }
+    legacy = jwt.encode(payload, SECRET, algorithm="HS256")
+    assert decode_token(legacy, SECRET, TokenType.ACCESS).auth_at == 0
+
+
+def test_both_tokens_in_a_pair_carry_the_same_auth_at() -> None:
+    claims = TokenClaims(uuid.UUID(int=1), 0, UserRole.ADMIN, auth_at=1_700_000_000)
+    pair = issue_token_pair(claims, SECRET, ONE_MINUTE, ONE_MINUTE)
+    access = decode_token(pair.access, SECRET, TokenType.ACCESS)
+    refresh = decode_token(pair.refresh, SECRET, TokenType.REFRESH)
+    assert access.auth_at == refresh.auth_at == 1_700_000_000
+    assert refresh.role is None  # unchanged from spec 4
+
+
+def test_a_non_numeric_auth_at_is_rejected() -> None:
+    payload = {
+        "sub": str(uuid.UUID(int=1)),
+        "ver": 0,
+        "typ": "access",
+        "exp": 9999999999,
+        "at": "not-a-number",
+    }
+    forged = jwt.encode(payload, SECRET, algorithm="HS256")
+    with pytest.raises(NotAuthenticatedError):
+        decode_token(forged, SECRET, TokenType.ACCESS)

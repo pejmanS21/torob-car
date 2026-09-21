@@ -33,6 +33,7 @@ class TokenClaims:
     user_id: uuid.UUID
     token_version: int
     role: UserRole | None
+    auth_at: int  # unix seconds of the last real password entry; 0 = never/stale
 
 
 @dataclass(frozen=True)
@@ -74,6 +75,7 @@ def encode_token(
         "sub": str(claims.user_id),
         "ver": claims.token_version,
         "typ": token_type.value,
+        "at": claims.auth_at,
         "exp": datetime.now(UTC) + lifetime,
     }
     if claims.role is not None:
@@ -105,6 +107,9 @@ def _claims_from(payload: dict[str, Any]) -> TokenClaims:
             user_id=uuid.UUID(payload["sub"]),
             token_version=int(payload["ver"]),
             role=UserRole(role) if role is not None else None,
+            # A token minted before admin hardening has no "at" claim. 0 fails every
+            # freshness window, costing one re-authentication — never a 500.
+            auth_at=int(payload.get("at", 0)),
         )
     except (TypeError, ValueError) as error:  # a signed token with malformed claims
         raise NotAuthenticatedError() from error
