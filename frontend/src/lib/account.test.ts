@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { AUTH_ERROR_TEXT, clearAccount, removeAlertById, toAlertBody, toPriceAlert, toggleSavedId, withAlertId } from "./account";
+import { AUTH_ERROR_TEXT, clearAccount, importableLists, removeAlertById, toAlertBody, toPriceAlert, toggleSavedId, withAlertId } from "./account";
 import type { PriceAlert } from "./types";
 
 const alert = (title: string, id?: string): PriceAlert => ({ id, title, threshold: 500_000_000, params: { q: title } });
@@ -26,9 +26,24 @@ test("removeAlertById returns what it removed so a failed delete can restore it"
   expect(removeAlertById([kept], "missing")).toEqual({ alerts: [kept], removed: undefined });
 });
 
-test("logout clears saved and alerts and keeps compare", () => {
-  const state = { compare: ["x", "y"], saved: ["a"], alerts: [alert("۲۰۶", "srv-1")] };
-  expect(clearAccount(state)).toEqual({ compare: ["x", "y"], saved: [], alerts: [] });
+test("logout clears saved and alerts, resets ownerId, and keeps compare", () => {
+  const state = { compare: ["x", "y"], saved: ["a"], alerts: [alert("۲۰۶", "srv-1")], ownerId: "user-1" as string | null };
+  expect(clearAccount(state)).toEqual({ compare: ["x", "y"], saved: [], alerts: [], ownerId: null });
+});
+
+test("importableLists sends the lists from an anonymous blob (no owner yet)", () => {
+  const persisted = { saved: ["a"], alerts: [alert("۲۰۶")], ownerId: null };
+  expect(importableLists(persisted, "user-1")).toEqual({ saved: ["a"], alerts: persisted.alerts });
+});
+
+test("importableLists sends the lists when the blob is owned by the account signing in", () => {
+  const persisted = { saved: ["a"], alerts: [alert("۲۰۶")], ownerId: "user-1" };
+  expect(importableLists(persisted, "user-1")).toEqual({ saved: ["a"], alerts: persisted.alerts });
+});
+
+test("importableLists drops the lists when the blob is owned by a different account", () => {
+  const persisted = { saved: ["a"], alerts: [alert("۲۰۶")], ownerId: "user-2" };
+  expect(importableLists(persisted, "user-1")).toEqual({ saved: [], alerts: [] });
 });
 
 test("alerts convert to and from the API shapes without the id leaking into a create body", () => {

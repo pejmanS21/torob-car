@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,5 +40,12 @@ class UserRepository:
         await self.bump_token_version(user)
 
     async def bump_token_version(self, user: User) -> None:
-        user.token_version += 1
-        await self._session.flush()
+        """Atomic `token_version = token_version + 1` at the database, not a Python
+        read-modify-write: two concurrent bumps (e.g. two password resets) must both
+        land, never race to the same N+1 and silently un-revoke one of them."""
+        await self._session.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(token_version=User.token_version + 1)
+        )
+        await self._session.refresh(user, ["token_version"])

@@ -53,3 +53,19 @@ async def test_record_login_and_bump_token_version(session: AsyncSession) -> Non
     await users.record_login(user)
     await users.bump_token_version(user)
     assert user.last_login_at is not None and user.token_version == 1
+
+
+async def test_bump_token_version_is_atomic_across_two_sequential_bumps(
+    session: AsyncSession,
+) -> None:
+    """`token_version += 1` in Python would race under two concurrent bumps
+    reading the same starting value; the DB-side increment can't, since each
+    `UPDATE ... SET token_version = token_version + 1` reads and writes atomically."""
+    users = UserRepository(session)
+    user = await users.create_if_absent(EMAIL, "hash", UserRole.USER)
+    assert user is not None
+    await users.bump_token_version(user)
+    await users.bump_token_version(user)
+    assert user.token_version == 2
+    reloaded = await users.get_by_id(user.id)
+    assert reloaded is not None and reloaded.token_version == 2

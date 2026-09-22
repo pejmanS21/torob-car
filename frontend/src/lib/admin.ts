@@ -27,7 +27,12 @@ export function safeNext(
   if (!next) return "/";
   try {
     const resolved = new URL(next, origin);
-    return resolved.origin === origin ? resolved.pathname + resolved.search : "/";
+    if (resolved.origin !== origin) return "/";
+    // Re-resolve the candidate we're about to return: `resolved.pathname` can itself
+    // start with "//" (e.g. next="/.//evil.example"), which a router treats as
+    // protocol-relative and follows off-origin even though `resolved.origin` matched.
+    const candidate = resolved.pathname + resolved.search;
+    return new URL(candidate, origin).origin === origin ? candidate : "/";
   } catch {
     return "/";
   }

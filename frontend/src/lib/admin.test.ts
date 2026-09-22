@@ -28,7 +28,7 @@ test("every admin error code the UI can hit has Persian copy", () => {
 
 test.each([
   ["/\\evil.com"], ["//evil.com"], ["https://evil.com"], ["javascript:alert(1)"],
-  [null], [""],
+  [null], [""], ["/.//evil.example"], ["/.//"], ["/..//evil.example"],
 ])("safeNext(%p) is blocked and falls back to \"/\"", (next) => {
   expect(safeNext(next as string | null, ORIGIN)).toBe("/");
 });

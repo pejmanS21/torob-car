@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { clearAccount, removeAlertById, toAlertBody, toPriceAlert, toggleSavedId, withAlertId } from "@/lib/account";
+import { clearAccount, importableLists, removeAlertById, toAlertBody, toPriceAlert, toggleSavedId, withAlertId } from "@/lib/account";
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from "@/lib/api/client";
 import type { AccountState, AssistantRequest, AssistantResponse, PriceAlertRead, UserRead } from "@/lib/api/types";
 import type { ChatMessage, PriceAlert } from "@/lib/types";
@@ -19,8 +19,10 @@ const SYNC_FAILED = "ذخیره نشد؛ دوباره امتحان کن";
 type AuthPath = "/auth/login" | "/auth/register";
 
 // `loggedIn` used to live here as a fake flag; an old stored value is simply ignored.
-interface Persisted { compare: string[]; saved: string[]; alerts: PriceAlert[]; }
-const EMPTY: Persisted = { compare: [], saved: [], alerts: [] };
+// `ownerId` (P1-b): which account's data `saved`/`alerts` are. `null` = anonymous —
+// including every blob stored before this field existed, so old data keeps working.
+interface Persisted { compare: string[]; saved: string[]; alerts: PriceAlert[]; ownerId: string | null; }
+const EMPTY: Persisted = { compare: [], saved: [], alerts: [], ownerId: null };
 
 interface Commit<T> { next: Persisted; result: T; }
 
@@ -84,6 +86,7 @@ function readPersisted(): Persisted {
       compare: Array.isArray(parsed.compare) ? parsed.compare.slice(0, MAX_COMPARE) : EMPTY.compare,
       saved: Array.isArray(parsed.saved) ? parsed.saved : EMPTY.saved,
       alerts: Array.isArray(parsed.alerts) ? parsed.alerts.filter(isAlert) : EMPTY.alerts,
+      ownerId: typeof parsed.ownerId === "string" ? parsed.ownerId : EMPTY.ownerId,
     };
   } catch {
     return EMPTY; // storage blocked or corrupt → start clean (spec: Error handling)
@@ -127,8 +130,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, [persisted, hydrated]);
 
   const adoptSession = useCallback((me: UserRead | null) => { userRef.current = me; setUser(me); }, []);
-  const adoptAccount = useCallback((state: AccountState) => {
-    commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, saved: state.saved, alerts: state.alerts.map(toPriceAlert) }, result: undefined }));
+  const adoptAccount = useCallback((state: AccountState, ownerId: string) => {
+    commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, saved: state.saved, alerts: state.alerts.map(toPriceAlert), ownerId }, result: undefined }));
   }, []);
 
   // Who am I? Server Components stay anonymous, so the session is discovered here.
@@ -140,7 +143,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       const [saved, alerts] = await Promise.all([apiGet<string[]>("/me/saved"), apiGet<PriceAlertRead[]>("/me/alerts")]);
       if (cancelled) return;
       adoptSession(me);
-      adoptAccount({ saved, alerts });
+      adoptAccount({ saved, alerts }, me.id);
     };
     // A 401 is the normal answer for a visitor, and an unreachable API leaves them
     // anonymous too: either way the locally stored `saved` list keeps working.
@@ -222,12 +225,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, [showToast]);
 
   const signIn = useCallback(async (path: AuthPath, email: string, password: string) => {
-    adoptSession(await apiPost<UserRead>(path, { email, password })); // failures propagate to the dialog
+    const me = await apiPost<UserRead>(path, { email, password }); // failures propagate to the dialog
+    adoptSession(me);
     setAuthOpen(false);
     showToast("خوش اومدی!");
-    const { saved, alerts } = persistedRef.current;
+    // P1-b: a blob owned by a different account (cookie expiry is not logout) never
+    // gets imported here — only anonymous or this-account data goes up.
+    const { saved, alerts } = importableLists(persistedRef.current, me.id);
     try {
-      adoptAccount(await apiPost<AccountState>("/me/import", { saved, alerts: alerts.map(toAlertBody) }));
+      adoptAccount(await apiPost<AccountState>("/me/import", { saved, alerts: alerts.map(toAlertBody) }), me.id);
     } catch {
       // ponytail: a failed import keeps this browser's lists until the next reload, which
       // replaces them with the server copy. Add a retry queue if that loss ever matters.
