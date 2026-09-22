@@ -1,5 +1,9 @@
 # ترب‌کار (Torobcar)
 
+[![CI](https://github.com/pejmanS21/torob-car/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pejmanS21/torob-car/actions/workflows/ci.yml?query=branch%3Amain)
+[![Security](https://github.com/pejmanS21/torob-car/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/pejmanS21/torob-car/actions/workflows/security.yml?query=branch%3Amain)
+[![Docker publish](https://github.com/pejmanS21/torob-car/actions/workflows/docker-publish.yml/badge.svg?branch=main)](https://github.com/pejmanS21/torob-car/actions/workflows/docker-publish.yml?query=branch%3Amain)
+
 A Persian, RTL car-search app — search, browse, compare, and get a price
 estimate for used cars. The Next.js frontend renders real crawled Divar data
 served by the FastAPI search backend (see **Backend** below); nothing on screen
@@ -51,7 +55,7 @@ HEADED=1 ./.scripts/smoke.sh     # watch it
 ## Scripts (run from `frontend/`)
 
 ```bash
-bun test              # run the unit test suite (src/lib)
+bun test              # run unit and component interaction tests
 bun run lint          # ESLint
 bunx tsc --noEmit     # TypeScript type check
 bun run build         # production build
@@ -84,7 +88,7 @@ full architecture and conventions.
 | `GET /models/{model}/stats` | count, year range, price median/min/max, 8-bucket histogram, per-trim counts, top deals |
 | `GET /catalog/suggest?q=&category=` | ≤ 10 typo-tolerant `{brand, model, trim, category, count}` rows; empty `q` = largest trims |
 | `POST /estimates` | `{category, trim, year, km, insurance_months, body_condition, asking_price}` → estimate, IQR band, breakdown, asking verdict, similar; 422 `no_comparables` |
-| `POST /assistant` | `{messages (≤ 10, ≤ 500 chars), compare_ids, chat_id?}` → `{text, listings, answered_by, chat_id}`; LLM agent with search/compare tools, rules fallback. Open to anonymous callers (`chat_id: null`); a logged-in caller gets the turn stored — omit `chat_id` to start a new conversation, 404 `chat_not_found` for one they do not own |
+| `POST /assistant` | `{messages (≤ 10; user text ≤ 500 chars, assistant text ≤ 2,000), compare_ids, chat_id?}` → `{text, listings, answered_by, chat_id}`; LLM agent with search/compare tools; 503 `assistant_unavailable` when the model is unavailable. Open to anonymous callers (`chat_id: null`); a logged-in caller gets the turn stored — omit `chat_id` to start a new conversation, 404 `chat_not_found` for one they do not own |
 | `GET /me/chats` | that account's conversations, newest first (≤ 50): `{id, title, updated_at}` |
 | `GET /me/chats/{id}` | full transcript; each reply's cards are re-read from today's listings, not a stored snapshot |
 | `DELETE /me/chats/{id}` | remove one conversation |
@@ -102,6 +106,9 @@ cd backend && uv run pytest
 Search works with no LLM key set — it falls back to a deterministic rules
 parser (`parsed_by: "rules"` in the response). Set `LLM_API_KEY` in `.env` to
 use Gemini (development default) or any OpenAI-compatible API in production.
+
+The buying assistant requires a working model and reports an unavailable service
+when it cannot answer; it does not generate a scripted fallback reply.
 
 ## Notes
 
