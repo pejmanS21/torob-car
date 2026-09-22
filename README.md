@@ -73,8 +73,23 @@ full architecture and conventions.
 ```bash
 ./.scripts/setup.sh                          # install backend + frontend deps
 ./.scripts/dev.sh                             # bring up the full stack
-./.scripts/ingest.sh assets/<csv>             # load a crawl CSV (divar, bama, karnameh, hamrah-mechanic)
 ```
+
+With the stack running, load the bundled crawl data from another terminal at the
+repository root (requires `unzip`):
+
+```bash
+unzip -n assets.zip && (
+  set -e
+  for csv in assets/*.csv; do
+    ./.scripts/ingest.sh "$csv"
+  done
+)
+```
+
+This extracts and loads the Divar, Bama, Karnameh, and Hamrah Mechanic CSVs.
+`-n` preserves any existing extracted files. To load an individual CSV later, run
+`./.scripts/ingest.sh assets/bama.csv`. Extracted CSVs stay ignored by Git.
 
 ### API (`/api/v1`)
 
