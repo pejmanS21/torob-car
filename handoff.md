@@ -1,172 +1,133 @@
 # Handoff — Torobcar
 
-_Last updated: 2026-09-20_
+_Last updated: 2026-09-23_
 
-## 0. Latest work (branch `feat/multi-source-and-ux`)
+## Start here
 
-Pushed to GitHub, no pull request open yet.
+Read [CLAUDE.md](CLAUDE.md) for architecture, conventions, and commands.
+The root [AGENTS.md](AGENTS.md) is a relative symlink to that file.
+For frontend work, also follow [frontend/AGENTS.md](frontend/AGENTS.md), including
+its requirement to consult the installed Next.js documentation before changing code.
+[README.md](README.md) covers setup and the API; avoid duplicating those references here.
 
-- **Three new sources ingested**: Bama, Karnameh and Hamrah Mechanic, 300 ads each, on
-  top of Divar's 14,652 — 15,552 in the database.
-- **New filters**: source, price type (نقد/توافقی/اقساطی) and deed status (8 values across
-  two vocabularies). Price type and deed status are sparse, so filtering on them still
-  shows ads that never stated a value.
-- **Divar remains the price baseline** (`ranking/estimator.py`, `_is_baseline`): the
-  inspected marketplaces sell at a premium, so they are scored but never set the median.
-- **Three fixes**: the model page 404'd because the route param was double-encoded; the
-  not-found button's label went red on red on hover; outbound ad links now show a
-  redirect interstitial naming the destination.
+## Delivery state
 
-Checks: backend 241 tests, frontend 33, ruff/black/tsc/lint clean, smoke passed.
+- Repository: [pejmanS21/torob-car](https://github.com/pejmanS21/torob-car), public
+  when checked on 2026-09-23. Its About description and topics have been configured.
+- [PR #3](https://github.com/pejmanS21/torob-car/pull/3) merged into `main` on
+  2026-09-22 as [`a7f2637`](https://github.com/pejmanS21/torob-car/commit/a7f263780eb4e41dbc3fae007ae44e786292b579).
+  It includes accounts/authentication, protected administration, assistant chat,
+  and the quality/coverage fixes. [PR #2](https://github.com/pejmanS21/torob-car/pull/2)
+  was also marked merged because its commits are included.
+- The last feature commit is
+  [`c028158`](https://github.com/pejmanS21/torob-car/commit/c0281584c23d62aefb033e1a4fb63a33654c7b23).
+  The local checkout is still `feat/admin-panel`; the merged work is already on
+  `origin/main`. Check `git status` and fetch before starting another change.
+- This documentation update adds live `main` workflow badges to README, refreshes
+  this handoff, and creates the root guidance symlink. It follows the application
+  merge on `feat/admin-panel`; check GitHub before assuming it is also on `main`.
+- Untracked local material includes `brag-output*/`, `demo-script.md`,
+  `graphify-out/`, `output/`, and `prototype/`. Preserve it; it was not included in
+  the application commit. Do not assume the code graph reflects the latest code.
 
-## 1. Goal
+## Verified results
 
-Build Torobcar, a Persian (RTL) used-car search and price-intelligence app over crawled Divar listings
-(`assets/divar-vehicles-sep-17-20_32.csv`). The core problem is **ranking and search**: find the listings
-closest to what the user asked for, including near-misses.
+The following GitHub Actions runs for merge commit `a7f2637` completed successfully,
+verified on 2026-09-23:
 
-- **Spec 1 (done):** backend search core.
-  - Stack: FastAPI, Postgres 18 with `pg_trgm`, Redis cache, Traefik as the only public port.
-  - Natural-language search: Pydantic AI turns free text into a typed `SearchIntent` (Gemini in dev, any
-    OpenAI-compatible API in prod; the rules parser takes over when there is no API key).
-  - Candidate rows come from SQL; a Python ranker orders them with soft ranking and near-miss labels.
-  - SonarQube Community Build runs locally.
-- **Spec 3 (done):** wire the Next.js frontend to the API so it shows only real crawled data.
-  - Server Components fetch first; client "islands" handle interactivity.
-  - All categories are treated equally.
-  - The UI never shows synthetic data.
+| Workflow | Run |
+|---|---|
+| CI: backend and frontend | [35737593434](https://github.com/pejmanS21/torob-car/actions/runs/35737593434) |
+| Security: Semgrep and Gitleaks | [35737593070](https://github.com/pejmanS21/torob-car/actions/runs/35737593070) |
+| Docker image build and publishing | [35737593081](https://github.com/pejmanS21/torob-car/actions/runs/35737593081) |
 
-## 2. Current state
+Local validation of the merged application on 2026-09-22:
 
-- **Code is on GitHub:** https://github.com/pejmanS21/torob-car (**private**). Pushed branches: `main`,
-  `feat/frontend`, `feat/backend-search-core`.
-- **Where the work lives:** all Spec 1 and Spec 3 work is on `feat/backend-search-core` at HEAD `ef11cb6`.
-  `feat/frontend-api-wiring` was fast-forward merged into it and deleted.
-- **No pull request is open yet.** The target is undecided: `feat/frontend` or `main`.
-- **Tests:**
-  - backend 229 passed;
-  - frontend 28 passed;
-  - `bunx tsc --noEmit`, `bun run lint`, `ruff` and `black` are clean;
-  - gitleaks: no leaks across 65 commits.
-- **Reviews:** the final whole-branch review found 0 Critical, 3 Important and 8 Minor issues. All 3
-  Important issues and 7 Minor issues are fixed in `ef11cb6`, and a scoped re-review confirmed the fixes.
-- **Running stack:**
-  - It still runs the Task 13 build, which does **not** include the `ef11cb6` fixes.
-  - It holds 14,652 ingested ads.
-  - The app is at http://localhost.
-- **Specs and plans:**
-  - `docs/superpowers/specs/2026-09-18-torobcar-frontend-api-wiring-design.md`
-  - `docs/superpowers/plans/2026-09-18-torobcar-frontend-api-wiring.md`
-- **Code graph:** refreshed with `graphify update .` (1,838 nodes).
+- Backend: **463 passed, 1 skipped**. Frontend: **135 passed**.
+- TypeScript, ESLint, Ruff, Black, production frontend build, and commit hooks passed.
+- [Local SonarQube project](http://localhost:9000/dashboard?id=torobcar):
+  **100% line coverage**, **0 uncovered lines**, **0 Reliability issues**,
+  **0 Maintainability issues**, and a passing quality gate. These are recorded
+  results for that scan, not a guarantee for future changes or branch coverage.
+- One existing low-severity Security finding remains: `typescript:S5332` for the
+  internal HTTP backend URL in `frontend/src/lib/api/base.ts`. Internal networking
+  is documented in `CLAUDE.md`; HTTPS cannot simply be substituted without configuring it.
+- `pre-commit.ci` reported that private repositories require its paid plan during
+  the merge. Local hooks passed. The repository is now public; recheck the current
+  integration status if it reports an error again.
 
-## 3. Active files
+## Behavior to preserve
 
-**Backend (`backend/`)**
+- Search can use the deterministic rules parser when a model is unavailable.
+  The buying assistant requires a working model and returns
+  `assistant_unavailable` instead of inventing a fallback answer.
+- The reported query `دنا پلاس اتمات` led to fixes for inaccurate car details:
+  recommendations retain exact-match metadata, expose known listing details, and
+  distinguish seller claims, conflicting gearbox/trim information, and installment
+  or allocation offers. See `backend/llm/assistant_agent.py`,
+  `backend/services/assistant_service.py`, and their tests.
+- Chat uses POST SSE with readable Persian text snapshots, a committed final answer,
+  and account-owned saved conversations. Anonymous replies are limited per client IP
+  in PostgreSQL. Streaming failures before the first text do not consume quota.
+  See `backend/api/assistant_stream.py`, `backend/services/chat_service.py`,
+  `backend/services/anonymous_chat_limit.py`, and `frontend/src/lib/api/assistant-stream.ts`.
+- Admin actions require fresh authentication, prevent self/last-admin lockout,
+  and write an audit entry in the same transaction. UI includes filtering and
+  pagination. See `backend/api/v1/admin/`, `backend/services/admin_user_service.py`,
+  and `frontend/src/app/admin/`.
+- An obsolete successful request must not overwrite the latest result in `useApi`.
+  The regression test is `frontend/src/lib/api/useApi.test.tsx`.
+- Listings come from Divar, Bama, Karnameh, and Hamrah Mechanic. Only Divar listings
+  establish the price baseline. Live row counts and the running container revision
+  were not rechecked for this handoff.
 
-| Area | Files |
-|------|-------|
-| Endpoints | `api/v1/endpoints/{search,listings,facets,models,catalog,estimates,assistant}.py` |
-| Services | `services/{listing_views,model_stats_service,catalog_service,estimate_service,assistant_service}.py` |
-| Repositories | `repositories/*` (`count_by_city`, `load_model_rows`, `find_model`, `suggest`, `find_trim`, `get_by_ids`) |
-| Ranking | `ranking/{weights,model_stats,estimator}.py` — the verdict thresholds live **only** in `weights.py` |
-| LLM | `llm/assistant_agent.py` — agent is injected via `dependencies/providers.py` (`AssistantAgentDep`) |
-| Core | `core/phone.py` (phone masking); `core/config.py` (`assistant_timeout_seconds=20`) |
+## Development and validation
 
-**Frontend (`frontend/src/`)**
+Use **uv** from `backend/` and **Bun** from `frontend/`. The supported local stack
+is served through Traefik at `http://localhost`; backend/frontend ports are internal.
+The backend container applies Alembic migrations at startup, currently through
+`0006_anonymous_chat_quotas`. A successfully published image does not establish
+that an existing local or deployed stack has been updated.
 
-| Area | Files |
-|------|-------|
-| API layer | `lib/api/{types,base,client,useApi}.ts` — `types.ts` mirrors `backend/schemas/*.py` by hand |
-| Libs | `lib/{compare,pricing,view,search,format,labels,specs,theme}.ts` |
-| Routes | `app/{page,results/page,listing/[id]/page,model/[model]/page,compare,estimate}` |
-| Components | `components/{ResultsScreen,FiltersPanel,ModelCard,ListingScreen,CompareTable,ChatPanel,EstimateForm,…}.tsx` |
-| State | `state/AppState.tsx` (localStorage key `torobcar:v2`) |
+```bash
+# From the repository root:
+./.scripts/test-db.sh
+(cd backend && uv run pytest -q --cov=. --cov-report=xml)
+(cd frontend && bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage)
+(cd frontend && bunx tsc --noEmit && bun run lint && bun run build)
+pre-commit run --all-files
+./.scripts/sonar.sh
+```
 
-**Infra and docs**
+- Frontend interaction tests use Happy DOM and React Testing Library. Shared setup
+  and network fixtures are in `frontend/test/`; preload configuration is in
+  `frontend/bunfig.toml`.
+- Coverage includes Alembic's environment/startup code. Applied migration version
+  files remain excluded under the existing project policy. Do not exclude
+  application code or alter reports to meet the coverage target.
+- `sonar.sh` runs tests before loading `.env`, then adjusts coverage paths for
+  the scanner container. Exporting the entire application environment before tests
+  previously caused model/settings tests to fail.
+- SonarQube runs via `.docker/compose.sonar.yml` at `http://localhost:9000`.
+  `SONAR_TOKEN` belongs in the ignored `.env`; never print or commit credentials.
+- Docker's frontend builder uses Node because Next/Turbopack builds under Bun's
+  Node shim previously failed on linux/arm64. See `.docker/frontend.Dockerfile`.
+- The in-app browser was unavailable in the prior session. Check availability before
+  promising live UI validation; the component tests do not replace a browser smoke run.
 
-- `.docker/compose.yml`: Traefik labels, including the `api-assistant` rate limit (5/s, burst 10).
-- `.docker/frontend.Dockerfile`: the build runs on node, not bun.
-- `.scripts/smoke.sh`, `example.env`, `README.md`, `CLAUDE.md`.
+## Next work
 
-## 4. Changes made
+No application feature task is currently assigned. The requested reliability,
+maintainability, coverage, commit, merge, and About-section work is complete.
+For the next task, start from current `main`, preserve local artifacts, and verify
+any assumptions about the running stack. Admin listing moderation, catalog editing,
+and ingest-job management are later phases, not implemented by the merged Phase 1;
+see [the admin design](docs/superpowers/specs/2026-09-21-torobcar-admin-panel-design.md).
 
-**Spec 3 backend**
+## Suggested skills
 
-- Phone numbers in descriptions are masked (`core/phone.py`).
-- `ListingCard` gained lat/lng, gearbox, fuel, body condition and insurance months.
-- Facets gained `data_as_of` and `model_count`.
-- New endpoints:
-  - model stats, using inclusive quantiles for the histogram;
-  - catalog suggest/trim;
-  - `/estimates`, which shares estimator code with ingest;
-  - `/assistant`, a Pydantic AI agent with tools and a fallback when the LLM fails.
-
-**Spec 3 frontend**
-
-- Added the typed API client and `useApi`, which uses AbortController.
-- All screens are rewired to the API.
-- Mock data modules were deleted (`listings.ts`, `catalog.ts`, `estimate.ts`, `modelStats.ts`, `assistant.ts`).
-- Added `loading.tsx` and `error.tsx` files.
-- A 404/422 on the listing or model page renders `notFound()`.
-- The route `model/[id]` was renamed to `model/[model]`.
-- Server pages call `await connection()` so Next doesn't fetch from the API at build time.
-
-**Infra**
-
-- The browser calls `/api/v1` on the same origin; the server uses `API_INTERNAL_URL`.
-- `NEXT_PUBLIC_API_URL` was removed.
-- The assistant and estimate routes are rate-limited.
-- Added the agent-browser smoke script `.scripts/smoke.sh`.
-
-**Final-review fixes (`ef11cb6`)**
-
-- The mobile filter sheet's open state moved up to `results/page.tsx`, so it no longer closes on every tap.
-- The listing detail page reports the listing's own lat/lng, never the city centre. Cards still fall back to the city.
-- `compare.ts` uses the card's `verdict` instead of hard-coded −5/+6 thresholds, with a new test.
-- IDs in API paths are encoded with `encodeURIComponent`.
-- The price bar is skipped when a model has no price range.
-- A search retry now resets pagination.
-- `smoke-fail.png` was added to `.gitignore`.
-- An unused `MILLION` constant was removed.
-- The assistant's `compare_listings` tool is capped at `MAX_COMPARE_IDS`.
-
-## 5. Failed attempts
-
-- **`bun run build` in Docker** segfaults (Next 16 + Turbopack under Bun's Node shim, linux/arm64).
-  - The fix: the builder and runtime stages use `node:22-slim` and run `node node_modules/.bin/next build`.
-  - Retry bun when a new Bun release fixes the crash.
-- **Smoke script clicked «بیشتر» only once.** On real data the similar-ads divider needs more pages, so it failed.
-  - The fix: a bounded loop of at most 5 clicks.
-- **Assistant agent was built inside the service**, not injected through `Depends`.
-  - The test override did nothing, and a real `LLM_API_KEY` would have broken the test suite.
-  - The fix: injection through `providers.py`.
-- **Exclusive quantiles** extrapolated the histogram edges for rare models. The fix: `method="inclusive"`.
-- **`Promise.all` on the listing page** meant a failure in the similar-ads call took down the whole page.
-  - The fix: fetch detail first, then similar; a similar-ads failure only hides that section.
-- **Pages were prerendered at build time.** The listing and model pages lacked `await connection()` and
-  hit the API during the build. The fix: add the call.
-- **A fix introduced a lint error.** It broke the `prefer-const` rule, and the re-reviewer missed it;
-  the controller's own lint run caught it.
-- **A reviewer claimed the proxy is NGINX.** Rejected: `.docker/` has no NGINX files, and the stack uses Traefik.
-- **Environment limits:**
-  - Reading `.env` and `curl` to localhost are denied. Use agent-browser, or `docker compose exec -T backend python -c …`.
-  - One Haiku implementer used the wrong commit trailer; it was fixed with an amend.
-
-## 6. Next step
-
-1. **Open a pull request** for `feat/backend-search-core`. Target `feat/frontend` or `main` (you decide):
-   `gh pr create --base <target> --head feat/backend-search-core`.
-2. **Rebuild the stack** to pick up `ef11cb6`, then run the smoke check:
-   `docker compose -f .docker/compose.yml up -d --build && ./.scripts/smoke.sh`
-3. **Run the first SonarQube scan.** Log in to the local SonarQube, create a token and put it in
-   `.env` as `SONAR_TOKEN`, then run `./.scripts/sonar.sh`.
-4. **Add an `LLM_API_KEY`** (Gemini) and check the assistant against a real model. So far it has only run
-   against a test model (`FunctionModel`). Then run `uv run python -m llm.eval`.
-5. **Bump `CURRENT_YEAR = 1405`** in `frontend/src/components/FiltersPanel.tsx` before Nowruz 1406.
-6. **Optional minor fixes:**
-   - debounce the type-ahead and add ARIA combobox roles;
-   - use `Promise.allSettled` in `AlertsDropdown`;
-   - prune stale compare ids;
-   - show a toast when `saveSearch` does nothing.
-7. **Optional repo settings:** make the repo public if you want, and set `DOCKERHUB_USERNAME` and
-   `DOCKERHUB_TOKEN` as repository secrets so `docker-publish.yml` can push images.
+- `handoff`: refresh this document when project state changes; the user requested
+  this repository-local handoff explicitly.
+- `review`: when asked to review a future diff against repository standards and its spec.
+- `browser:control-in-app-browser` or `playwright`: for requested live UI validation,
+  subject to the available browser tools in that session.

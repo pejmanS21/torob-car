@@ -8,6 +8,7 @@
 .git
 .env
 assets
+assets.zip
 prototype
 brag-output
 graphify-out
