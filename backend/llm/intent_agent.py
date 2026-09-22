@@ -5,6 +5,7 @@ from datetime import date
 
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
+from pydantic_ai.output import PromptedOutput
 
 from core.text import jalali_year
 from schemas.search import SearchIntent
@@ -30,7 +31,9 @@ Rules:
 - category: light = passenger cars and pickups, motorcycle, heavy = trucks, buses,
   agricultural and construction machinery, rental, classic. Set it only when clear.
 - cities: Persian city names exactly as written.
-- gearbox: «اتومات/اتوماتیک» → automatic, «دنده‌ای/دستی» → manual.
+- gearbox: «اتومات/اتوماتیک/اتمات» → automatic, «دنده‌ای/دستی» → manual.
+  Keep gearbox words out of vehicle model/trim. «دنا پلاس اتمات» means
+  vehicles=[{{model: دنا پلاس}}], gearbox=automatic; do not invent a turbo or trim.
 - only_below_market: true for «ارزان», «زیر قیمت», «به‌صرفه».
 - sort: price for «ارزان‌ترین», km for «کم‌کارکردترین», newest for «جدیدترین»;
   otherwise relevance.
@@ -56,7 +59,12 @@ def build_instructions() -> str:
 def build_intent_agent(model: Model) -> Agent[None, SearchIntent]:
     return Agent(
         model,
-        output_type=SearchIntent,
+        # PromptedOutput, not the default tool output: a thinking model rejects the
+        # forced `tool_choice` an output tool needs ("Thinking mode does not support
+        # this tool_choice"), and DeepSeek rejects NativeOutput's `json_schema`
+        # response format too. This puts the schema in the instructions and uses
+        # plain JSON mode, which every provider here accepts.
+        output_type=PromptedOutput(SearchIntent),
         instructions=build_instructions,
         retries=OUTPUT_RETRIES,
     )

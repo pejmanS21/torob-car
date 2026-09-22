@@ -18,6 +18,21 @@ cp example.env .env
 
 The app runs at `http://localhost` (Traefik, port 80).
 
+Anonymous chat allows 3 replies per client IP in a 24-hour window from the first
+reply (`ANONYMOUS_CHAT_DAILY_LIMIT`). PostgreSQL enforces this across workers and browser
+refreshes; exhausted visitors receive a sign-in prompt. Signed-in chat is exempt.
+Replies count once their first text is delivered; errors before that do not consume
+the quota. Compose trusts forwarded client addresses
+because the backend is internal and Traefik sanitizes those headers; do not expose
+the backend directly with `FORWARDED_ALLOW_IPS=*`.
+
+Chat uses `POST /api/v1/assistant/stream` (SSE over a POST request). `text` events
+carry the current Persian text snapshot; `done` carries the validated answer,
+listing cards and saved chat ID after the transaction commits. An `error` event
+means the partial reply must be discarded. Disconnecting after receiving text does
+not refund the guest quota. Incomplete answers are not saved in chat history.
+`POST /assistant` remains available for JSON clients.
+
 `bun run dev` alone (no backend) renders every screen in its «سرویس جست‌وجو در
 دسترس نیست» state — there is no mock server. Server Components reach the backend
 at `API_INTERNAL_URL` (`http://backend:8000` in Compose); the browser calls
@@ -69,7 +84,10 @@ full architecture and conventions.
 | `GET /models/{model}/stats` | count, year range, price median/min/max, 8-bucket histogram, per-trim counts, top deals |
 | `GET /catalog/suggest?q=&category=` | ≤ 10 typo-tolerant `{brand, model, trim, category, count}` rows; empty `q` = largest trims |
 | `POST /estimates` | `{category, trim, year, km, insurance_months, body_condition, asking_price}` → estimate, IQR band, breakdown, asking verdict, similar; 422 `no_comparables` |
-| `POST /assistant` | `{messages (≤ 10, ≤ 500 chars), compare_ids}` → `{text, listings, answered_by}`; LLM agent with search/compare tools, rules fallback |
+| `POST /assistant` | `{messages (≤ 10, ≤ 500 chars), compare_ids, chat_id?}` → `{text, listings, answered_by, chat_id}`; LLM agent with search/compare tools, rules fallback. Open to anonymous callers (`chat_id: null`); a logged-in caller gets the turn stored — omit `chat_id` to start a new conversation, 404 `chat_not_found` for one they do not own |
+| `GET /me/chats` | that account's conversations, newest first (≤ 50): `{id, title, updated_at}` |
+| `GET /me/chats/{id}` | full transcript; each reply's cards are re-read from today's listings, not a stored snapshot |
+| `DELETE /me/chats/{id}` | remove one conversation |
 | `GET /health` · `GET /health/ready` | liveness · readiness (Postgres + Redis ping) |
 
 ### Tests

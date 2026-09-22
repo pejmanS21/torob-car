@@ -7,7 +7,7 @@ import styles from "./CompareTable.module.css";
 
 interface Props { cards: ListingCard[]; onRemove(id: string): void; }
 
-export function CompareTable({ cards, onRemove }: Props) {
+export function CompareTable({ cards, onRemove }: Readonly<Props>) {
   const rows = compareRows(cards);
   const wrapStyle = { "--cols": cards.length } as CSSProperties;
   return (

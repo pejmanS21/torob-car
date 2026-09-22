@@ -9,7 +9,7 @@ const DEFAULT_BODY = "#68b828";
 interface AvatarProps { size: number; body?: string; animation?: AvatarAnimation; }
 interface Controller { play(animation: string): void; destroy(): void; }
 
-function FallbackFace({ color }: { color: string }) {
+function FallbackFace({ color }: Readonly<{ color: string }>) {
   return (
     <svg viewBox="-150 -150 300 300" width="100%" height="100%" aria-label="دستیار" role="img">
       <circle r="120" fill={color} />
@@ -19,7 +19,7 @@ function FallbackFace({ color }: { color: string }) {
   );
 }
 
-export function Avatar({ size, body = DEFAULT_BODY, animation = "idle" }: AvatarProps) {
+export function Avatar({ size, body = DEFAULT_BODY, animation = "idle" }: Readonly<AvatarProps>) {
   const boxRef = useRef<HTMLSpanElement>(null);
   const controllerRef = useRef<Controller | null>(null);
   const animationRef = useRef(animation);
@@ -31,7 +31,10 @@ export function Avatar({ size, body = DEFAULT_BODY, animation = "idle" }: Avatar
       try {
         const [{ createAvatar }, definition] = await Promise.all([
           import("@bible-strong/avatar-web"),
-          fetch(DEFINITION_URL).then((r) => { if (!r.ok) throw new Error(`avatar definition ${r.status}`); return r.json(); }),
+          fetch(DEFINITION_URL).then((response) => {
+            if (!response.ok) throw new Error(`avatar definition ${response.status}`);
+            return response.json();
+          }),
         ]);
         if (cancelled || !boxRef.current) return;
         controllerRef.current = createAvatar(boxRef.current, {

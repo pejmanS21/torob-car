@@ -184,3 +184,67 @@ def test_a_listing_under_the_km_floor_is_a_labelled_near_miss() -> None:
     assert (inside.id, inside.is_exact) == (EXACT_MATCH.id, True)
     assert below.is_exact is False
     assert labels.under_km(30_000) in below.labels
+
+
+@pytest.mark.parametrize(
+    "sort,field",
+    [
+        (SortKey.PRICE, "price"),
+        (SortKey.KM, "km"),
+        (SortKey.DEAL, "deal_score"),
+        (SortKey.NEWEST, "posted_at"),
+    ],
+)
+def test_explicit_sort_puts_missing_values_last(sort: SortKey, field: str) -> None:
+    missing = variant(2, **{field: None})
+    found = rank(RankingQuery(sort=sort), missing, EXACT_MATCH)
+    assert [item.id for item in found] == [EXACT_MATCH.id, missing.id]
+
+
+def test_missing_and_mismatched_criteria_are_explained() -> None:
+    from ranking.closeness import (
+        city_closeness,
+        color_closeness,
+        fuel_closeness,
+        gearbox_closeness,
+        price_closeness,
+        vehicle_closeness,
+    )
+    from ranking.weights import DEFAULT_WEIGHTS
+
+    query = replace(QUERY, fuel=Fuel.PETROL, colors=("سفید",))
+    for function, field, wrong in [
+        (fuel_closeness, "fuel", Fuel.DIESEL),
+        (color_closeness, "color", "مشکی"),
+    ]:
+        assert function(query, EXACT_MATCH, DEFAULT_WEIGHTS).closeness == 1
+        assert (
+            function(query, variant(2, **{field: None}), DEFAULT_WEIGHTS).closeness
+            == DEFAULT_WEIGHTS.unknown_closeness
+        )
+        assert function(query, variant(2, **{field: wrong}), DEFAULT_WEIGHTS).label
+    assert (
+        gearbox_closeness(query, variant(2, gearbox=None), DEFAULT_WEIGHTS).closeness
+        == DEFAULT_WEIGHTS.unknown_closeness
+    )
+    assert (
+        vehicle_closeness(query, variant(2, brand="other"), DEFAULT_WEIGHTS).closeness
+        == 0
+    )
+    for candidate, cities in [
+        (variant(2, city="other", lat=None), query.cities),
+        (EXACT_MATCH, (ResolvedCity("other", None, None),)),
+    ]:
+        assert (
+            city_closeness(
+                replace(query, cities=cities), candidate, DEFAULT_WEIGHTS
+            ).closeness
+            == 0
+        )
+    assert (
+        price_closeness(
+            replace(query, price_max=0), EXACT_MATCH, DEFAULT_WEIGHTS
+        ).closeness
+        == 0
+    )
+    assert labels.farther(1, "کرج")

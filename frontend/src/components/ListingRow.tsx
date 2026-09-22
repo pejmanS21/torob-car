@@ -3,7 +3,7 @@ import type { CardView } from "@/lib/view";
 import { VerdictBadge } from "./VerdictBadge";
 import styles from "./ListingRow.module.css";
 
-export function ListingRow({ card }: { card: CardView }) {
+export function ListingRow({ card }: Readonly<{ card: CardView }>) {
   return (
     <Link href={card.href} className={styles.row}>
       <div role="img" aria-label={card.title} className={styles.thumb} style={{ backgroundImage: `url(${card.img})` }} />

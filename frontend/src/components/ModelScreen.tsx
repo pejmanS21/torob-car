@@ -15,7 +15,7 @@ import styles from "./ModelScreen.module.css";
 export const ALERT_FRACTION_OF_MEDIAN = 0.9;
 const ALERT_ROUNDING = 10_000_000;
 
-export function ModelScreen({ stats }: { stats: ModelStats }) {
+export function ModelScreen({ stats }: Readonly<{ stats: ModelStats }>) {
   const { addAlert } = useAppState();
   const threshold = stats.price_median === null ? null : Math.round((stats.price_median * ALERT_FRACTION_OF_MEDIAN) / ALERT_ROUNDING) * ALERT_ROUNDING;
   const saveAlert = () => threshold && addAlert({ title: stats.model, params: { models: [stats.model], category: stats.category }, threshold });

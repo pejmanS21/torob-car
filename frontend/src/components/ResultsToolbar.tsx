@@ -16,7 +16,7 @@ interface Props {
   onSave(): void;
 }
 
-export function ResultsToolbar({ countFa, subtitle, filtersLabel, onOpenFilters, sort, onSort, onSave }: Props) {
+export function ResultsToolbar({ countFa, subtitle, filtersLabel, onOpenFilters, sort, onSort, onSave }: Readonly<Props>) {
   const { loggedIn } = useAppState();
   const saveLabel = loggedIn ? "ذخیره و هشدار قیمت" : "هشدار قیمت (ورود)";
 

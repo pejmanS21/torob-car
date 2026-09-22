@@ -12,7 +12,7 @@ MAX_SUGGEST_QUERY_LENGTH = 100
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
 
-@router.get("/suggest", response_model=list[CatalogSuggestion])
+@router.get("/suggest")
 async def suggest_vehicles(
     service: Annotated[CatalogService, Depends(get_catalog_service)],
     q: Annotated[str | None, Query(max_length=MAX_SUGGEST_QUERY_LENGTH)] = None,

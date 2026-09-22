@@ -98,9 +98,15 @@ export interface EstimateResponse {
   asking_verdict: Verdict | null; asking_diff_pct: number | null; similar: ListingCard[];
 }
 
-export interface AssistantMessage { role: ChatRole; text: string; }
-export interface AssistantRequest { messages: AssistantMessage[]; compare_ids: string[]; }
-export interface AssistantResponse { text: string; listings: ListingCard[]; answered_by: ParsedBy; }
+export interface AssistantMessage { role: ChatRole; text: string; listing_ids?: string[]; }
+export interface AssistantRequest { messages: AssistantMessage[]; compare_ids: string[]; chat_id?: string | null; }
+export interface AssistantResponse { text: string; listings: ListingCard[]; answered_by: ParsedBy; chat_id: string | null; }
+
+// Stored conversations — mirrors backend/schemas/chat.py. Anonymous visitors never
+// see these: the backend answers them but keeps nothing.
+export interface ChatSummary { id: string; title: string; updated_at: string; }
+export interface ChatMessageRead { role: ChatRole; text: string; listings: ListingCard[]; }
+export interface ChatDetail { id: string; title: string; updated_at: string; messages: ChatMessageRead[]; }
 
 export interface ApiErrorBody { error: { code: string; message: string; details: unknown }; }
 

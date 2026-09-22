@@ -7,7 +7,7 @@ import secrets
 import uuid
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import jwt
 
@@ -121,7 +121,7 @@ def issue_token_pair(
     access_lifetime: timedelta,
     refresh_lifetime: timedelta,
 ) -> TokenPair:
-    roleless = replace(claims, role=None)
+    roleless = cast(TokenClaims, replace(claims, role=None))
     return TokenPair(
         access=encode_token(claims, TokenType.ACCESS, secret, access_lifetime),
         refresh=encode_token(roleless, TokenType.REFRESH, secret, refresh_lifetime),

@@ -37,7 +37,7 @@ interface Props {
   onSheetOpenChange: (open: boolean) => void;
 }
 
-export function ResultsScreen({ params, facets, sheetOpen, onSheetOpenChange }: Props) {
+export function ResultsScreen({ params, facets, sheetOpen, onSheetOpenChange }: Readonly<Props>) {
   const router = useRouter();
   const { addAlert } = useAppState();
   const [more, setMore] = useState<ListingCardData[]>([]);
@@ -49,7 +49,8 @@ export function ResultsScreen({ params, facets, sheetOpen, onSheetOpenChange }: 
 
   const items = [...(search.data?.items ?? []), ...more];
   const modelsInResults = uniqueModels(items);
-  const modelNames = params.models?.length ? params.models : modelsInResults.length <= MAX_MODEL_CARDS ? modelsInResults : [];
+  const suggestedModels = modelsInResults.length <= MAX_MODEL_CARDS ? modelsInResults : [];
+  const modelNames = params.models?.length ? params.models : suggestedModels;
   const stats = useApi(modelNames.length ? `stats:${modelNames.join("|")}` : null, (signal) =>
     Promise.all(modelNames.map((model) => apiGet<ModelStats>(`/models/${encodeURIComponent(model)}/stats`, {}, signal))));
 

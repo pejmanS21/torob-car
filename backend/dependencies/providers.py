@@ -21,7 +21,9 @@ from llm.model_factory import build_model
 from ranking.ranker import ListingRanker
 from repositories.admin_audit_repository import AdminAuditRepository
 from repositories.admin_user_repository import AdminUserRepository
+from repositories.anonymous_chat_quota_repository import AnonymousChatQuotaRepository
 from repositories.catalog_repository import CatalogRepository
+from repositories.chat_repository import ChatRepository
 from repositories.city_repository import CityRepository
 from repositories.health_repository import HealthRepository
 from repositories.listing_repository import ListingRepository
@@ -34,10 +36,12 @@ from services.account_service import AccountService
 from services.admin_audit_service import AdminAuditService
 from services.admin_stats_service import AdminStatsService
 from services.admin_user_service import AdminUserService
+from services.anonymous_chat_limit import AnonymousChatLimit
 from services.assistant_service import AssistantService
 from services.audit_recorder import AuditRecorder
 from services.auth_service import AuthService
 from services.catalog_service import CatalogService
+from services.chat_service import ChatService
 from services.estimate_service import EstimateService
 from services.facet_service import FacetService
 from services.intent_resolver import IntentResolver
@@ -130,16 +134,27 @@ def get_facet_service(
 def get_assistant_service(
     session: SessionDep,
     settings: SettingsDep,
-    parser: Annotated[QueryParser, Depends(get_query_parser)],
     search: Annotated[SearchService, Depends(get_search_service)],
     agent: AssistantAgentDep,
 ) -> AssistantService:
     return AssistantService(
         agent,
-        parser,
         search,
         ListingRepository(session),
         settings.assistant_timeout_seconds,
+    )
+
+
+def get_chat_service(
+    session: SessionDep,
+    settings: SettingsDep,
+    assistant: Annotated[AssistantService, Depends(get_assistant_service)],
+) -> ChatService:
+    return ChatService(
+        assistant,
+        ChatRepository(session),
+        ListingRepository(session),
+        AnonymousChatLimit(AnonymousChatQuotaRepository(session), settings),
     )
 
 
@@ -189,6 +204,22 @@ def get_current_user(
 
 
 CurrentUserDep = Annotated[TokenClaims, Depends(get_current_user)]
+
+
+def get_optional_user(
+    settings: SettingsDep,
+    access_token: Annotated[str | None, Cookie(alias=ACCESS_COOKIE)] = None,
+) -> TokenClaims | None:
+    """For routes anonymous visitors may use. No cookie means anonymous; a cookie that
+    is present but invalid still raises, so an expired session gets its 401 and the
+    client's refresh-and-replay runs — it never degrades silently to anonymous."""
+    if access_token is None:
+        return None
+    secret = settings.jwt_secret.get_secret_value()
+    return decode_token(access_token, secret, TokenType.ACCESS)
+
+
+OptionalUserDep = Annotated[TokenClaims | None, Depends(get_optional_user)]
 
 
 def _require_fresh_enough(auth_at: int, window_minutes: int) -> None:

@@ -6,7 +6,7 @@ interface ScoreBarProps {
   color: string;
 }
 
-export function ScoreBar({ score, scoreFa, color }: ScoreBarProps) {
+export function ScoreBar({ score, scoreFa, color }: Readonly<ScoreBarProps>) {
   return (
     <div className={styles.row}>
       <div className={styles.track}>

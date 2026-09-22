@@ -51,7 +51,7 @@ export function Header() {
           <div className={styles.actions} ref={bellRef}>
             <button className={styles.chatButton} onClick={() => setChatOpen(!chatOpen)}>
               <span className={styles.chatAvatar}><Avatar size={24} /></span>
-              دستیار
+              <span>دستیار</span>
             </button>
             <button className={styles.iconButton} aria-label="هشدارها" aria-expanded={bellOpen} onClick={() => setBellOpen(!bellOpen)}>
               <Icon name="bell" stroke="#172033" />

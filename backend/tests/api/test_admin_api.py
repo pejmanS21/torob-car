@@ -141,3 +141,23 @@ async def test_stats_reports_real_counts(
     stats = (await api.get(f"{ADMIN}/stats")).json()
     assert stats["users_total"] >= 1 and stats["admins_active"] >= 1
     assert stats["listings_total"] == 617  # the seeded fixture
+
+
+async def test_admin_resets_password_then_deletes_user_and_audits(
+    api: AsyncClient, session: AsyncSession
+) -> None:
+    await _register(api, "target@example.com")
+    target = await UserRepository(session).get_by_email("target@example.com")
+    await _register(api, "actor@example.com")
+    await _promote(session, "actor@example.com")
+    actor = await UserRepository(session).get_by_email("actor@example.com")
+    response = await api.post(
+        f"{ADMIN}/users/{target.id}/password", json={"new": "another password"}
+    )
+    assert response.status_code == 204, response.text
+    response = await api.delete(f"{ADMIN}/users/{target.id}")
+    assert response.status_code == 204, response.text
+    assert (await api.get(f"{ADMIN}/users/{target.id}")).status_code == 404
+    audit = await api.get(f"{ADMIN}/audit", params={"actor_id": str(actor.id)})
+    assert audit.status_code == 200
+    assert audit.json()["total"] == 2

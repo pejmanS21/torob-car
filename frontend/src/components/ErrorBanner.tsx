@@ -6,7 +6,7 @@ export const SERVICE_UNAVAILABLE = "سرویس جست‌وجو در دسترس �
 /** 422 → the backend's own message (a user problem); anything else → service unavailable. */
 export const errorText = (error: ApiError): string => (error.status === 422 ? error.message : SERVICE_UNAVAILABLE);
 
-export function ErrorBanner({ error, onRetry }: { error: ApiError; onRetry?: () => void }) {
+export function ErrorBanner({ error, onRetry }: Readonly<{ error: ApiError; onRetry?: () => void }>) {
   return (
     <div className={styles.banner} role="alert">
       <span>{errorText(error)}</span>

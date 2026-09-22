@@ -14,19 +14,19 @@ router = APIRouter(prefix="/listings", tags=["listings"])
 ServiceDep = Annotated[ListingService, Depends(get_listing_service)]
 
 
-@router.get("", response_model=list[ListingCard])
+@router.get("")
 async def read_listings(
     service: ServiceDep, ids: Annotated[list[uuid.UUID], Query(min_length=1)]
 ) -> list[ListingCard]:
     return await service.get_many(ids)
 
 
-@router.get("/{listing_id}", response_model=ListingDetail)
+@router.get("/{listing_id}")
 async def read_listing(service: ServiceDep, listing_id: uuid.UUID) -> ListingDetail:
     return await service.get_detail(listing_id)
 
 
-@router.get("/{listing_id}/similar", response_model=list[ListingCard])
+@router.get("/{listing_id}/similar")
 async def read_similar_listings(
     service: ServiceDep,
     listing_id: uuid.UUID,

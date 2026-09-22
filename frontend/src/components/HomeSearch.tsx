@@ -17,7 +17,7 @@ export function HomeSearch() {
   const router = useRouter();
   const [text, setText] = useState("");
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = text.trim();
     router.push(trimmed ? `/results?q=${encodeURIComponent(trimmed)}` : "/results");

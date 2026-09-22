@@ -7,6 +7,7 @@ from api.v1.endpoints import (
     assistant,
     auth,
     catalog,
+    chats,
     estimates,
     facets,
     listings,
@@ -25,4 +26,5 @@ router.include_router(estimates.router)
 router.include_router(assistant.router)
 router.include_router(auth.router)
 router.include_router(me.router)
+router.include_router(chats.router)
 router.include_router(admin_router)

@@ -9,7 +9,7 @@ from services.estimate_service import EstimateService
 router = APIRouter(prefix="/estimates", tags=["estimates"])
 
 
-@router.post("", response_model=EstimateResponse)
+@router.post("")
 async def create_estimate(
     service: Annotated[EstimateService, Depends(get_estimate_service)],
     request: EstimateRequest,

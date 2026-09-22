@@ -5,7 +5,7 @@ import secrets
 from functools import lru_cache
 from typing import Self
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from enums import LlmProvider
@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     llm_base_url: str | None = None
     llm_timeout_seconds: float = 4.0
     assistant_timeout_seconds: float = 20.0  # tool calls need two round trips
+    anonymous_chat_daily_limit: int = Field(default=3, ge=1)
     jwt_secret: SecretStr = SecretStr("")
     access_token_minutes: int = 15
     refresh_token_days: int = 30

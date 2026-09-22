@@ -16,12 +16,13 @@ import styles from "./ListingScreen.module.css";
 
 const NO_ESTIMATE = "بدون تخمین";
 
-export function ListingScreen({ detail, similar }: { detail: ListingDetail; similar: ListingCard[] }) {
+export function ListingScreen({ detail, similar }: Readonly<{ detail: ListingDetail; similar: ListingCard[] }>) {
   const card = cardOf(detail);
   const modelHref = detail.model ? `/model/${encodeURIComponent(detail.model)}` : "/results";
   const modelLabel = detail.model ?? detail.title;
   const cityQuery = `${modelLabel} ${detail.city}`;
   const photos = detail.image_urls.length ? detail.image_urls : [card.img];
+  const location = detail.district ? `${detail.city}، ${detail.district}` : detail.city;
 
   return (
     <section className={styles.screen}>
@@ -39,7 +40,7 @@ export function ListingScreen({ detail, similar }: { detail: ListingDetail; simi
             ]}
           />
           {detail.lat !== null && (
-            <MapCard title="محل خودرو" hint={`${detail.district ? `${detail.city}، ${detail.district}` : detail.city} · محدودهٔ تقریبی`} listings={[detail]} single />
+            <MapCard title="محل خودرو" hint={`${location} · محدودهٔ تقریبی`} listings={[detail]} single />
           )}
         </div>
         <div className={styles.sideCol}>

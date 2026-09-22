@@ -90,7 +90,9 @@ step "assistant question"
 "${AB[@]}" find label "پیام" fill "$QUERY"
 "${AB[@]}" press Enter
 "${AB[@]}" wait --load networkidle
-expect_text "آگهی پیدا کردم" "assistant replied with a real count"
+# The reply text is the model's own words now (there is no scripted sentence left to
+# match), so assert what proves it is a real answer: cards from the live listings.
+expect_text "$MODEL" "assistant replied with real listing cards"
 
 step "422 message"
 "${AB[@]}" open "$BASE_URL/results?q=x&year=1200"

@@ -17,7 +17,7 @@ const BOUNDS_PADDING = 0.3;
 type Pinned = ListingCard & { lat: number; lng: number };
 const pinnable = (l: ListingCard): l is Pinned => l.lat !== null && l.lng !== null;
 
-export default function ListingsMap({ listings, single = false }: { listings: ListingCard[]; single?: boolean }) {
+export default function ListingsMap({ listings, single = false }: Readonly<{ listings: ListingCard[]; single?: boolean }>) {
   const elementRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 

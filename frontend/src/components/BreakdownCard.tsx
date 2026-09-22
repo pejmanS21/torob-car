@@ -5,7 +5,7 @@ import styles from "./BreakdownCard.module.css";
 
 interface Props { verdict: VerdictStyle; diffText: string; rows: BreakdownRow[]; estText: string; priceText: string; note: string; }
 
-export function BreakdownCard({ verdict, diffText, rows, estText, priceText, note }: Props) {
+export function BreakdownCard({ verdict, diffText, rows, estText, priceText, note }: Readonly<Props>) {
   return (
     <div className={styles.card}>
       <div className={styles.head} style={{ background: verdict.bg }}>

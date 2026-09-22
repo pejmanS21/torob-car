@@ -4,7 +4,7 @@ import { SERVICE_UNAVAILABLE } from "@/components/ErrorBanner";
 import styles from "./not-found.module.css";
 
 // Next 16 passes `retry` (not `reset`) to error boundaries.
-export default function RouteError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+export default function RouteError({ error, retry }: Readonly<{ error: Error & { digest?: string }; retry: () => void }>) {
   useEffect(() => { console.error(error); }, [error]);
   return (
     <section className={styles.screen}>

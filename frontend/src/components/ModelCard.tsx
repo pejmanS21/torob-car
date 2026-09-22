@@ -6,7 +6,7 @@ import styles from "./ModelCard.module.css";
 interface Props { stats: ModelStats; axisMin: number; axisMax: number; }
 
 /** Price range bar on an axis shared by every model card shown (lowest min → highest max). */
-export function ModelCard({ stats, axisMin, axisMax }: Props) {
+export function ModelCard({ stats, axisMin, axisMax }: Readonly<Props>) {
   // No range to plot: this model's own min/max, or the whole shared axis
   // (every card's min/max null), is missing — skip the bar instead of NaN%.
   const hasRange = stats.price_min !== null && stats.price_max !== null && Number.isFinite(axisMin) && Number.isFinite(axisMax);

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { fa } from "@/lib/format";
 import styles from "./Gallery.module.css";
 
-export function Gallery({ photos, title }: { photos: string[]; title: string }) {
+export function Gallery({ photos, title }: Readonly<{ photos: string[]; title: string }>) {
   const [selected, setSelected] = useState(0);
 
   return (
@@ -16,7 +16,7 @@ export function Gallery({ photos, title }: { photos: string[]; title: string }) 
       <div className={styles.thumbs}>
         {photos.map((photo, i) => (
           <button
-            key={i}
+            key={photo}
             type="button"
             aria-label={`عکس ${fa(i + 1)}`}
             aria-pressed={i === selected}

@@ -9,7 +9,7 @@ from services.model_stats_service import ModelStatsService
 router = APIRouter(prefix="/models", tags=["models"])
 
 
-@router.get("/{model}/stats", response_model=ModelStats)
+@router.get("/{model}/stats")
 async def read_model_stats(
     service: Annotated[ModelStatsService, Depends(get_model_stats_service)],
     model: str,

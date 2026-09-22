@@ -3,8 +3,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { clearAccount, importableLists, removeAlertById, toAlertBody, toPriceAlert, toggleSavedId, withAlertId } from "@/lib/account";
 import { ApiError, apiDelete, apiGet, apiPost, apiPut } from "@/lib/api/client";
-import type { AccountState, AssistantRequest, AssistantResponse, PriceAlertRead, UserRead } from "@/lib/api/types";
+import type { AccountState, AssistantRequest, ChatDetail, ChatSummary, PriceAlertRead, UserRead } from "@/lib/api/types";
+import { streamAssistant } from "@/lib/api/assistant-stream";
 import type { ChatMessage, PriceAlert } from "@/lib/types";
+import { toAssistantMessages } from "@/lib/chat";
 
 export const MAX_COMPARE = 3;
 export type AvatarAnimation = "idle" | "thinking" | "happy";
@@ -12,8 +14,8 @@ export type AvatarAnimation = "idle" | "thinking" | "happy";
 const STORAGE_KEY = "torobcar:v2"; // v1 held synthetic ids and is ignored
 const TOAST_MS = 2200;
 const HAPPY_MS = 2500;
-const HISTORY_LIMIT = 10; // the backend caps history at 10 messages
-const GREETING: ChatMessage = { role: "assistant", text: "سلام! بگو دنبال چه ماشینی هستی، یا بپرس کدوم آگهی به‌صرفه‌تره. من همهٔ آگهی‌های فعال رو می‌بینم.", listings: [] };
+type ChatEntry = ChatMessage & { id: string };
+const GREETING: ChatEntry = { id: "greeting", role: "assistant", text: "سلام! من دستیار خرید خودروی تربم. بگو دنبال چه ماشینی هستی تا بین آگهی‌ها جست‌وجو کنم و بهترین گزینه‌ها رو پیدا کنم.", listings: [] };
 const CHAT_UNAVAILABLE = "الان به سرویس جست‌وجو دسترسی ندارم؛ چند لحظه بعد دوباره بپرس.";
 const SYNC_FAILED = "ذخیره نشد؛ دوباره امتحان کن";
 type AuthPath = "/auth/login" | "/auth/register";
@@ -64,7 +66,9 @@ function revertOptimisticAlert(local: PriceAlert) {
 
 export interface AppStateValue extends Persisted {
   user: UserRead | null; loggedIn: boolean; authReady: boolean; authOpen: boolean;
-  bellOpen: boolean; chatOpen: boolean; chatMessages: ChatMessage[]; chatBusy: boolean; avatarAnimation: AvatarAnimation; toast: string;
+  bellOpen: boolean; chatOpen: boolean; chatMessages: ChatEntry[]; chatBusy: boolean; avatarAnimation: AvatarAnimation; toast: string;
+  chats: ChatSummary[]; activeChatId: string | null;
+  startChat(): void; openChat(id: string): void; deleteChat(id: string): void;
   toggleCompare(id: string): void; removeFromCompare(id: string): void; toggleSaved(id: string): void;
   addAlert(alert: PriceAlert): void; removeAlert(id: string): void;
   login(email: string, password: string): Promise<void>; register(email: string, password: string): Promise<void>; logout(): Promise<void>;
@@ -93,16 +97,15 @@ function readPersisted(): Persisted {
   }
 }
 
-const toAssistantMessages = (messages: ChatMessage[]): AssistantRequest["messages"] =>
-  messages.slice(-HISTORY_LIMIT).map(({ role, text }) => ({ role, text }));
-
-export function AppStateProvider({ children }: { children: React.ReactNode }) {
+export function AppStateProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [persisted, setPersisted] = useState<Persisted>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
+  const [chatMessages, setChatMessages] = useState<ChatEntry[]>([GREETING]);
   const [chatBusy, setChatBusy] = useState(false);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [recentReply, setRecentReply] = useState(false);
   const [toast, setToast] = useState("");
   const [user, setUser] = useState<UserRead | null>(null);
@@ -112,8 +115,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const happyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const persistedRef = useRef<Persisted>(EMPTY);
-  const chatRef = useRef<ChatMessage[]>([GREETING]);
+  const chatRef = useRef<ChatEntry[]>([GREETING]);
   const chatBusyRef = useRef(false);
+  const chatControllerRef = useRef<AbortController | null>(null);
+  const chatNavigationRef = useRef(0);
+  const activeChatRef = useRef<string | null>(null); // sendChat reads this, so it stays a ref
   const mountedRef = useRef(true);
 
   // Load after mount so server and first client render match.
@@ -130,6 +136,24 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, [persisted, hydrated]);
 
   const adoptSession = useCallback((me: UserRead | null) => { userRef.current = me; setUser(me); }, []);
+
+  // The history list is a convenience, never the chat itself: a failed load leaves the
+  // panel working with an empty list rather than showing an error.
+  const refreshChats = useCallback(() => {
+    if (!userRef.current) return;
+    apiGet<ChatSummary[]>("/me/chats").then(setChats).catch(() => undefined);
+  }, []);
+
+  const startChat = useCallback(() => {
+    chatNavigationRef.current += 1;
+    chatControllerRef.current?.abort();
+    chatBusyRef.current = false;
+    setChatBusy(false);
+    chatRef.current = [GREETING];
+    setChatMessages(chatRef.current);
+    activeChatRef.current = null; // the next question creates the chat server-side
+    setActiveChatId(null);
+  }, []);
   const adoptAccount = useCallback((state: AccountState, ownerId: string) => {
     commitPersisted(persistedRef, setPersisted, (p) => ({ next: { ...p, saved: state.saved, alerts: state.alerts.map(toPriceAlert), ownerId }, result: undefined }));
   }, []);
@@ -140,10 +164,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const load = async () => {
       const me = await apiGet<UserRead>("/me");
-      const [saved, alerts] = await Promise.all([apiGet<string[]>("/me/saved"), apiGet<PriceAlertRead[]>("/me/alerts")]);
+      const [saved, alerts, stored] = await Promise.all([apiGet<string[]>("/me/saved"), apiGet<PriceAlertRead[]>("/me/alerts"), apiGet<ChatSummary[]>("/me/chats")]);
       if (cancelled) return;
       adoptSession(me);
       adoptAccount({ saved, alerts }, me.id);
+      setChats(stored);
     };
     // A 401 is the normal answer for a visitor, and an unreachable API leaves them
     // anonymous too: either way the locally stored `saved` list keeps working.
@@ -157,6 +182,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      chatControllerRef.current?.abort();
       clearTimeout(toastTimer.current);
       clearTimeout(happyTimer.current);
     };
@@ -229,6 +255,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     adoptSession(me);
     setAuthOpen(false);
     showToast("خوش اومدی!");
+    refreshChats(); // this account's own history, never the previous visitor's
     // P1-b: a blob owned by a different account (cookie expiry is not logout) never
     // gets imported here — only anonymous or this-account data goes up.
     const { saved, alerts } = importableLists(persistedRef.current, me.id);
@@ -239,7 +266,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       // replaces them with the server copy. Add a retry queue if that loss ever matters.
       showToast(SYNC_FAILED);
     }
-  }, [adoptSession, adoptAccount, showToast]);
+  }, [adoptSession, adoptAccount, refreshChats, showToast]);
 
   const login = useCallback((email: string, password: string) => signIn("/auth/login", email, password), [signIn]);
   const register = useCallback((email: string, password: string) => signIn("/auth/register", email, password), [signIn]);
@@ -249,45 +276,99 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     adoptSession(null);
     commitPersisted(persistedRef, setPersisted, (p) => ({ next: clearAccount(p), result: undefined }));
     setBellOpen(false);
+    // The transcript is this account's, so it leaves with the session — the next
+    // person on a shared browser must not find it.
+    setChats([]);
+    startChat();
     showToast("خارج شدی");
-  }, [adoptSession, showToast]);
+  }, [adoptSession, startChat, showToast]);
 
   const openAuth = useCallback(() => { setBellOpen(false); setAuthOpen(true); }, []);
   const closeAuth = useCallback(() => setAuthOpen(false), []);
 
   const appendChat = useCallback((message: ChatMessage) => {
-    chatRef.current = [...chatRef.current, message];
+    chatRef.current = [...chatRef.current, { ...message, id: crypto.randomUUID() }];
     setChatMessages(chatRef.current);
   }, []);
 
-  // Stateless assistant: every call carries the recent history and the compare ids.
+  // A reply carries the chat it was stored in: the first answer of a new conversation
+  // names a chat this browser has not seen, so the history list is re-read.
+  const adoptChat = useCallback((chatId: string | null) => {
+    if (chatId === null || chatId === activeChatRef.current) return;
+    activeChatRef.current = chatId;
+    setActiveChatId(chatId);
+    refreshChats();
+  }, [refreshChats]);
+
+  const openChat = useCallback((id: string) => {
+    if (chatBusyRef.current) return;
+    const navigation = ++chatNavigationRef.current;
+    apiGet<ChatDetail>(`/me/chats/${id}`)
+      .then((chat) => {
+        if (!mountedRef.current || navigation !== chatNavigationRef.current) return;
+        chatRef.current = chat.messages.map(({ role, text, listings }) => ({ role, text, listings, id: crypto.randomUUID() }));
+        setChatMessages(chatRef.current);
+        activeChatRef.current = chat.id;
+        setActiveChatId(chat.id);
+      })
+      .catch(() => { if (navigation === chatNavigationRef.current) showToast("گفتگو باز نشد؛ دوباره امتحان کن"); });
+  }, [showToast]);
+
+  const deleteChat = useCallback((id: string) => {
+    setChats((current) => current.filter((chat) => chat.id !== id));
+    if (activeChatRef.current === id) startChat();
+    apiDelete(`/me/chats/${id}`).catch(() => { showToast(SYNC_FAILED); refreshChats(); });
+  }, [startChat, refreshChats, showToast]);
+
+  // The assistant itself stays stateless: every call carries the recent history, the
+  // compare ids and — for a logged-in visitor — which stored chat to append to.
   const sendChat = useCallback((raw: string) => {
     const text = raw.trim();
     if (!text || chatBusyRef.current) return;
+    chatNavigationRef.current += 1;
     chatBusyRef.current = true;
     setChatBusy(true);
     appendChat({ role: "user", text, listings: [] });
-    const body: AssistantRequest = { messages: toAssistantMessages(chatRef.current), compare_ids: persistedRef.current.compare };
-    apiPost<AssistantResponse>("/assistant", body)
-      .then((reply) => ({ role: "assistant" as const, text: reply.text, listings: reply.listings }))
-      .catch((error: unknown) => ({ role: "assistant" as const, text: error instanceof ApiError && error.status === 422 ? error.message : CHAT_UNAVAILABLE, listings: [] }))
-      .then((message) => {
-        if (!mountedRef.current) return;
-        appendChat(message);
-        chatBusyRef.current = false;
-        setChatBusy(false);
+    const body: AssistantRequest = { messages: toAssistantMessages(chatRef.current), compare_ids: persistedRef.current.compare, chat_id: activeChatRef.current };
+    const controller = new AbortController();
+    chatControllerRef.current = controller;
+    const replyIndex = chatRef.current.length;
+    appendChat({ role: "assistant", text: "", listings: [], status: "streaming" });
+    const updateReply = (message: ChatMessage) => {
+      if (!mountedRef.current || controller.signal.aborted) return;
+      chatRef.current = chatRef.current.map((current, index) => index === replyIndex ? { ...message, id: current.id } : current);
+      setChatMessages(chatRef.current);
+    };
+    streamAssistant(body, (text) => updateReply({ role: "assistant", text, listings: [], status: "streaming" }), controller.signal)
+      .then((reply) => {
+        if (!mountedRef.current || controller.signal.aborted) return;
+        adoptChat(reply.chat_id);
+        updateReply({ role: "assistant", text: reply.text, listings: reply.listings });
         setRecentReply(true);
         clearTimeout(happyTimer.current);
         happyTimer.current = setTimeout(() => setRecentReply(false), HAPPY_MS);
+      })
+      .catch((error: unknown) => {
+        if (!mountedRef.current || controller.signal.aborted) return;
+        const limited = error instanceof ApiError && error.code === "anonymous_chat_limit";
+        if (limited) setAuthOpen(true);
+        updateReply({ role: "assistant", text: error instanceof ApiError && (limited || error.status === 422) ? error.message : CHAT_UNAVAILABLE, listings: [], status: "failed" });
+      })
+      .finally(() => {
+        if (!mountedRef.current || controller.signal.aborted) return;
+        chatBusyRef.current = false;
+        setChatBusy(false);
+        chatControllerRef.current = null;
       });
-  }, [appendChat]);
+  }, [appendChat, adoptChat]);
 
-  const avatarAnimation: AvatarAnimation = chatBusy ? "thinking" : recentReply ? "happy" : "idle";
+  const restingAnimation: AvatarAnimation = recentReply ? "happy" : "idle";
+  const avatarAnimation: AvatarAnimation = chatBusy ? "thinking" : restingAnimation;
 
   const value = useMemo<AppStateValue>(() => ({
-    ...persisted, user, loggedIn: user !== null, authReady, authOpen, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast,
-    toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, login, register, logout, openAuth, closeAuth, setBellOpen, setChatOpen, sendChat, showToast,
-  }), [persisted, user, authReady, authOpen, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast, toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, login, register, logout, openAuth, closeAuth, sendChat, showToast]);
+    ...persisted, user, loggedIn: user !== null, authReady, authOpen, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast, chats, activeChatId,
+    toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, login, register, logout, openAuth, closeAuth, setBellOpen, setChatOpen, sendChat, showToast, startChat, openChat, deleteChat,
+  }), [persisted, user, authReady, authOpen, bellOpen, chatOpen, chatMessages, chatBusy, avatarAnimation, toast, chats, activeChatId, toggleCompare, removeFromCompare, toggleSaved, addAlert, removeAlert, login, register, logout, openAuth, closeAuth, sendChat, showToast, startChat, openChat, deleteChat]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
 }

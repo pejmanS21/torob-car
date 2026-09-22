@@ -5,17 +5,17 @@ import { ApiError, apiGet } from "@/lib/api/client";
 import type { ListingCard, ListingDetail } from "@/lib/api/types";
 
 const SIMILAR_LIMIT = 3;
-const NOT_FOUND_STATUSES = [404, 422]; // 422 = not even a UUID
+const NOT_FOUND_STATUSES = new Set([404, 422]); // 422 = not even a UUID
 
 // Rendered on request (no generateStaticParams): detail first, then similar (a similar failure only hides that section).
-export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ListingPage({ params }: Readonly<{ params: Promise<{ id: string }> }>) {
   await connection(); // Prevent prerender at build time; fetch on every request.
   const { id } = await params;
   let detail: ListingDetail;
   try {
     detail = await apiGet<ListingDetail>(`/listings/${encodeURIComponent(id)}`);
   } catch (error) {
-    if (error instanceof ApiError && NOT_FOUND_STATUSES.includes(error.status)) notFound();
+    if (error instanceof ApiError && NOT_FOUND_STATUSES.has(error.status)) notFound();
     throw error; // → app/error.tsx
   }
   const similar = await apiGet<ListingCard[]>(`/listings/${encodeURIComponent(id)}/similar`, { limit: SIMILAR_LIMIT }).catch(

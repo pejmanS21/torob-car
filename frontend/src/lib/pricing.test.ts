@@ -49,3 +49,7 @@ test("estimateBreakdownRows mirrors the /estimates breakdown", () => {
   expect(rows[0].val).toBe(formatToman(estimate.breakdown.base));
   expect(rows[1].note).toBe("۹۰,۰۰۰ کیلومتر");
 });
+
+test("overpriced listings explain the negotiation margin", () => {
+  expect(verdictNote({ ...detail, verdict: "expensive", price: 800000000, est_price: 600000000 })).toContain("بالاتر از تخمین");
+});

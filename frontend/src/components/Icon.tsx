@@ -16,7 +16,7 @@ export type IconName = keyof typeof PATHS;
 
 interface IconProps { name?: IconName; d?: string; size?: number; stroke?: string; fill?: string; className?: string; }
 
-export function Icon({ name, d, size = 18, stroke = "currentColor", fill = "none", className }: IconProps) {
+export function Icon({ name, d, size = 18, stroke = "currentColor", fill = "none", className }: Readonly<IconProps>) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true" style={{ flexShrink: 0 }}>
       <path d={d ?? (name ? PATHS[name] : "")} />

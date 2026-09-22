@@ -14,6 +14,9 @@ services:
     build: { context: .., dockerfile: .docker/backend.Dockerfile }
     image: pejmans21/torobcar-backend
     env_file: ../.env
+    # This service has no published port; only Traefik supplies client addresses.
+    environment:
+      FORWARDED_ALLOW_IPS: "*"
     expose: ["8000"] # internal only — no host mapping
     depends_on:
       db: { condition: service_healthy }

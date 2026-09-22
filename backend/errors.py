@@ -60,6 +60,28 @@ class ServiceUnavailableError(AppError):
     code = "service_unavailable"
 
 
+class AssistantUnavailableError(AppError):
+    """No model configured, or the provider failed. The chat never answers from a
+    canned script, so this is what an outage looks like to the caller."""
+
+    status_code = 503
+    code = "assistant_unavailable"
+
+    def __init__(self) -> None:
+        super().__init__("The assistant is unavailable")
+
+
+class AnonymousChatLimitError(AppError):
+    status_code = 429
+    code = "anonymous_chat_limit"
+
+    def __init__(self, limit: int, retry_after: int) -> None:
+        super().__init__(
+            "برای ادامهٔ گفتگو وارد حساب کاربری‌ات شو؛ سهمیهٔ روزانهٔ مهمان تمام شده.",
+            {"limit": limit, "retry_after_seconds": retry_after},
+        )
+
+
 class IngestError(AppError):
     code = "ingest_failed"
 
@@ -121,6 +143,14 @@ class AlertNotFoundError(AppError):
         super().__init__("Alert not found", {"alert_id": str(alert_id)})
 
 
+class ChatNotFoundError(AppError):
+    status_code = 404
+    code = "chat_not_found"
+
+    def __init__(self, chat_id: uuid.UUID) -> None:
+        super().__init__("Chat not found", {"chat_id": str(chat_id)})
+
+
 class AdminReauthRequiredError(AppError):
     status_code = 403
     code = "admin_reauth_required"
@@ -176,13 +206,14 @@ def _envelope(status_code: int, code: str, message: str, details: Any) -> JSONRe
     return JSONResponse(status_code=status_code, content=jsonable_encoder(body))
 
 
-async def _handle_app_error(_: Request, error: AppError) -> JSONResponse:
-    return _envelope(error.status_code, error.code, error.message, error.context)
+def _handle_app_error(_: Request, error: AppError) -> JSONResponse:
+    response = _envelope(error.status_code, error.code, error.message, error.context)
+    if isinstance(error, AnonymousChatLimitError):
+        response.headers["Retry-After"] = str(error.context["retry_after_seconds"])
+    return response
 
 
-async def _handle_validation_error(
-    _: Request, error: RequestValidationError
-) -> JSONResponse:
+def _handle_validation_error(_: Request, error: RequestValidationError) -> JSONResponse:
     # `error.errors()` includes the raw submitted value under "input" — for a password
     # field that is the plaintext password. Strip it before it reaches any log, APM or
     # error tracker; loc/msg/type stay so the response is still useful. Filtering by
@@ -196,17 +227,17 @@ async def _handle_validation_error(
     return _envelope(422, "validation_error", "Invalid request", details)
 
 
-async def _handle_http_error(_: Request, error: StarletteHTTPException) -> JSONResponse:
+def _handle_http_error(_: Request, error: StarletteHTTPException) -> JSONResponse:
     return _envelope(error.status_code, "http_error", str(error.detail), {})
 
 
-async def _handle_database_down(_: Request, error: OperationalError) -> JSONResponse:
+def _handle_database_down(_: Request, error: OperationalError) -> JSONResponse:
     logger.error("database unavailable", exc_info=error)
     unavailable = ServiceUnavailableError("Database unavailable")
     return _envelope(unavailable.status_code, unavailable.code, unavailable.message, {})
 
 
-async def _handle_unexpected(_: Request, error: Exception) -> JSONResponse:
+def _handle_unexpected(_: Request, error: Exception) -> JSONResponse:
     logger.error("unhandled exception", exc_info=error)
     return _envelope(500, AppError.code, "Internal server error", {})
 
