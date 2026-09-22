@@ -4,7 +4,7 @@ import { diffText, verdictStyle } from "@/lib/pricing";
 import { VerdictBadge } from "./VerdictBadge";
 import styles from "./EstimateResultCard.module.css";
 
-export function EstimateResultCard({ result, title, year }: { result: EstimateResponse; title: string; year: number | null }) {
+export function EstimateResultCard({ result, title, year }: Readonly<{ result: EstimateResponse; title: string; year: number | null }>) {
   return (
     <div className={styles.card}>
       <div className={styles.label}>تخمین ترب‌کار برای {title}{year === null ? "" : ` مدل ${fa(year)}`}</div>

@@ -23,16 +23,23 @@
   margin: 0 0 20px;
 }
 
+/* Used on a <Link> here and on a <button> in app/error.tsx. A button keeps the UA's
+   own border and font unless they are reset, which is what made the error page's CTA
+   look unlike every other primary button — hence `border: 0` and `font: inherit`.
+   Radius and weight match .submit in HomeSearch / EstimateForm. */
 .cta {
   display: inline-flex;
   height: 38px;
   align-items: center;
   padding: 0 16px;
-  border-radius: 8px;
+  border: 0;
+  border-radius: 12px;
   background: var(--red);
   color: #fff;
+  font: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 /* Without this the global `a:hover { color: var(--red) }` beats `.cta`'s white and the label

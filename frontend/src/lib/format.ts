@@ -22,7 +22,7 @@ export const num = (n: number): string => fa(Math.round(n).toLocaleString("en-US
 export function formatToman(amount: number): string {
   const millions = Math.round(amount / TOMAN_PER_MILLION);
   if (millions >= MILLIONS_PER_BILLION) {
-    const billions = (millions / MILLIONS_PER_BILLION).toFixed(2).replace(/\.?0+$/, "");
+    const billions = Number((millions / MILLIONS_PER_BILLION).toFixed(2)).toString();
     return `${fa(billions)} میلیارد`;
   }
   return `${fa(millions)} میلیون`;

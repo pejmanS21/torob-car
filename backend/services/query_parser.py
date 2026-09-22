@@ -20,7 +20,7 @@ from schemas.search import SearchIntent
 
 logger = logging.getLogger(__name__)
 
-PROMPT_VERSION = "v1"  # bump when llm/intent_agent.py instructions change
+PROMPT_VERSION = "v2"  # bump when llm/intent_agent.py instructions change
 LLM_FAILURES = (AgentRunError, ModelAPIError, TimeoutError, httpx.HTTPError)
 
 

@@ -7,8 +7,11 @@ export interface ApiState<T> { data: T | null; error: ApiError | null; loading: 
 type Fetcher<T> = (signal: AbortSignal) => Promise<T>;
 interface Settled<T> { key: string; attempt: number; data: T | null; error: ApiError | null; }
 
-const asApiError = (error: unknown): ApiError =>
-  error instanceof ApiError ? error : new ApiError(0, "network_error", error instanceof Error ? error.message : "request failed");
+function asApiError(error: unknown): ApiError {
+  if (error instanceof ApiError) return error;
+  const message = error instanceof Error ? error.message : "request failed";
+  return new ApiError(0, "network_error", message);
+}
 
 /**
  * Fetch `key` with `fetcher`; a new key aborts the request in flight, so a superseded
@@ -24,7 +27,9 @@ export function useApi<T>(key: string | null, fetcher: Fetcher<T>): ApiState<T> 
     if (key === null) return;
     const controller = new AbortController();
     run(controller.signal)
-      .then((data) => setSettled({ key, attempt, data, error: null }))
+      .then((data) => {
+        if (!controller.signal.aborted) setSettled({ key, attempt, data, error: null });
+      })
       .catch((error: unknown) => {
         if (isAbort(error) || controller.signal.aborted) return;
         setSettled({ key, attempt, data: null, error: asApiError(error) });

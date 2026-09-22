@@ -15,7 +15,7 @@ export const isSearchSection = (pathname: string): boolean => SEARCH_SECTION_PRE
 
 export function Header() {
   const pathname = usePathname();
-  const { compare, alerts, loggedIn, bellOpen, chatOpen, setBellOpen, setChatOpen, toggleLogin } = useAppState();
+  const { compare, alerts, user, loggedIn, bellOpen, chatOpen, setBellOpen, setChatOpen, openAuth, logout } = useAppState();
   const bellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,15 +51,28 @@ export function Header() {
           <div className={styles.actions} ref={bellRef}>
             <button className={styles.chatButton} onClick={() => setChatOpen(!chatOpen)}>
               <span className={styles.chatAvatar}><Avatar size={24} /></span>
-              دستیار
+              <span>دستیار</span>
             </button>
             <button className={styles.iconButton} aria-label="هشدارها" aria-expanded={bellOpen} onClick={() => setBellOpen(!bellOpen)}>
               <Icon name="bell" stroke="#172033" />
               {loggedIn && alerts.length > 0 && <span className={styles.dot} />}
             </button>
-            {loggedIn
-              ? <button className={styles.user} title="خروج" onClick={toggleLogin}><span>علی</span><span className={styles.userBadge}>ع</span></button>
-              : <button className={styles.login} onClick={toggleLogin}>ورود</button>}
+            {user
+              ? (
+                <details className={styles.userMenu}>
+                  <summary className={styles.user} title={user.email}>
+                    <span className={styles.userBadge}>{user.email.charAt(0).toUpperCase()}</span>
+                  </summary>
+                  <div className={styles.menu}>
+                    <div className={styles.menuEmail} dir="ltr">{user.email}</div>
+                    {user.role === "admin" && (
+                      <Link href="/admin" className={styles.menuLink}>پنل مدیریت</Link>
+                    )}
+                    <button type="button" className={styles.menuItem} onClick={logout}>خروج</button>
+                  </div>
+                </details>
+              )
+              : <button className={styles.login} onClick={openAuth}>ورود</button>}
             {bellOpen && <AlertsDropdown />}
           </div>
         </div>

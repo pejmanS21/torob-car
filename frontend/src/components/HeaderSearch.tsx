@@ -5,12 +5,13 @@ import styles from "./HeaderSearch.module.css";
 
 const PLACEHOLDER = { desktop: "مثلاً: دنا پلاس اتومات زیر یک میلیارد، کرج", mobile: "جست‌وجو…" } as const;
 
-export function HeaderSearch({ variant }: { variant: "desktop" | "mobile" }) {
+export function HeaderSearch({ variant }: Readonly<{ variant: "desktop" | "mobile" }>) {
   const router = useRouter();
   const query = useSearchParams().get("q") ?? "";
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const text = String(new FormData(event.currentTarget).get("q") ?? "").trim();
+    const queryValue = new FormData(event.currentTarget).get("q");
+    const text = typeof queryValue === "string" ? queryValue.trim() : "";
     router.push(text ? `/results?q=${encodeURIComponent(text)}` : "/results");
   }
   return (

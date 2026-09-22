@@ -4,7 +4,7 @@ import styles from "./Breadcrumbs.module.css";
 
 interface Item { label: string; href?: string; }
 
-export function Breadcrumbs({ items }: { items: Item[] }) {
+export function Breadcrumbs({ items }: Readonly<{ items: Item[] }>) {
   return (
     <div className={styles.crumbs}>
       {items.map((item, i) => (

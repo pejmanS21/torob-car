@@ -9,6 +9,7 @@ dependencies = [
     "fastapi[standard]>=0.141.1",
     "pydantic-ai-slim[google,openai]>=2.45.0",
     "pydantic-settings>=2.15.0",
+    "pyjwt>=2.14.0",
     "redis>=8.1.0",
     "sqlalchemy[asyncio]>=2.0.54",
 ]
@@ -38,7 +39,7 @@ testpaths = ["tests"]
 markers = ["db: needs the Postgres test database (.docker/compose.test.yml)"]
 
 [tool.coverage.run]
-omit = ["tests/*", "db/migrations/*"]
+omit = ["tests/*", "db/migrations/versions/*"]
 
 [tool.black]
 line-length = 88

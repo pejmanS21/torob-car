@@ -16,16 +16,23 @@ const LOW_KM_FACTOR = 0.97;
 
 export const verdictStyle = (verdict: Verdict): VerdictStyle => VERDICTS[verdict];
 
-export const diffText = (d: number | null): string =>
-  d === null ? NO_ESTIMATE_TEXT
-  : d > 0.5 ? `${fa(Math.abs(d).toFixed(0))}٪ بالاتر از تخمین`
-  : d < -0.5 ? `${fa(Math.abs(d).toFixed(0))}٪ ارزان‌تر از تخمین`
-  : "برابر تخمین بازار";
+export function diffText(d: number | null): string {
+  if (d === null) return NO_ESTIMATE_TEXT;
+  if (d > 0.5) return `${fa(Math.abs(d).toFixed(0))}٪ بالاتر از تخمین`;
+  if (d < -0.5) return `${fa(Math.abs(d).toFixed(0))}٪ ارزان‌تر از تخمین`;
+  return "برابر تخمین بازار";
+}
 
-export const scoreColor = (score: number): string => (score >= 70 ? GREEN : score >= 45 ? AMBER : RED);
+export function scoreColor(score: number): string {
+  if (score >= 70) return GREEN;
+  return score >= 45 ? AMBER : RED;
+}
 
 export const signedToman = (d: number): string => (d >= 0 ? "+" : "−") + formatToman(Math.abs(d));
-export const deltaColor = (d: number): string => (Math.abs(d) < 1 ? NEUTRAL : d > 0 ? GREEN : RED);
+export function deltaColor(d: number): string {
+  if (Math.abs(d) < 1) return NEUTRAL;
+  return d > 0 ? GREEN : RED;
+}
 
 export const basisText = (basis: EstimateBasis, sampleSize: number): string =>
   basis === "none" ? BASIS_NAMES.none : `میانهٔ ${fa(sampleSize)} آگهی ${BASIS_NAMES[basis]}`;
@@ -45,18 +52,22 @@ const kmWord = (detail: ListingDetail): string => {
   const p = detail.price_breakdown;
   if (p.base === null || p.km_adjustment === null) return "";
   const factor = 1 + p.km_adjustment / p.base;
-  return factor > HIGH_KM_FACTOR ? "کم‌کارکرد نسبت به سنش" : factor < LOW_KM_FACTOR ? "پرکارکرد نسبت به سنش" : "با کارکرد معمول";
+  if (factor > HIGH_KM_FACTOR) return "کم‌کارکرد نسبت به سنش";
+  return factor < LOW_KM_FACTOR ? "پرکارکرد نسبت به سنش" : "با کارکرد معمول";
+};
+
+const SUMMARY_PRICES: Record<Verdict, string> = {
+  cheap: " قیمت ارزان‌تر از تخمین بازار است؛ ارزش بازدید سریع دارد، ولی دلیل قیمت پایین را حضوری بپرس.",
+  expensive: " قیمت بالاتر از تخمین بازار است؛ جای مذاکره دارد.",
+  fair: " قیمت در محدودهٔ بازار است؛ اگر بازدید رضایت‌بخش بود منطقی است.",
+  unknown: " برای این آگهی تخمین قیمت نداریم؛ با آگهی‌های مشابه مقایسه کن.",
 };
 
 /** One-paragraph summary from real fields only: title, km, body, verdict and advice. */
 export function summaryOf(detail: ListingDetail): string {
   const parts = [detail.trim ?? detail.title, detail.year ? `مدل ${fa(detail.year)}` : "", kmWord(detail)].filter(Boolean).join("، ");
   const body = detail.body_condition ? ` بدنه «${BODY_NAMES[detail.body_condition]}».` : "";
-  const price =
-    detail.verdict === "cheap" ? " قیمت ارزان‌تر از تخمین بازار است؛ ارزش بازدید سریع دارد، ولی دلیل قیمت پایین را حضوری بپرس."
-    : detail.verdict === "expensive" ? " قیمت بالاتر از تخمین بازار است؛ جای مذاکره دارد."
-    : detail.verdict === "fair" ? " قیمت در محدودهٔ بازار است؛ اگر بازدید رضایت‌بخش بود منطقی است."
-    : " برای این آگهی تخمین قیمت نداریم؛ با آگهی‌های مشابه مقایسه کن.";
+  const price = SUMMARY_PRICES[detail.verdict];
   return `${parts}.${body}${price}`;
 }
 

@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { apiBase } from "./base";
-import { ApiError, apiGet, apiPost, buildQuery } from "./client";
+import { ApiError, apiDelete, apiGet, apiPost, apiPut, buildQuery } from "./client";
 import error404 from "./__fixtures__/error-404.json";
 import error422 from "./__fixtures__/error-422.json";
 import facets from "./__fixtures__/facets.json";
@@ -66,4 +66,67 @@ test("a non-JSON failure and a network failure are still ApiErrors", async () =>
   stubFetch(() => Promise.reject(new TypeError("fetch failed")));
   const offline = await failure(apiGet("/facets"));
   expect([offline.status, offline.code]).toEqual([0, "network_error"]);
+});
+
+const EXPIRED = { error: { code: "token_expired", message: "Token expired", details: {} } };
+const ANONYMOUS = { error: { code: "not_authenticated", message: "Not authenticated", details: {} } };
+const reply = (status: number, body: unknown): Response => new Response(JSON.stringify(body), { status });
+const pathOf = (call: Call): string => call.url.replace(/^.*\/api\/v1/, "");
+
+function routeFetch(respond: (path: string) => Response): Call[] {
+  const calls: Call[] = [];
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    const call = { url: String(url), init };
+    calls.push(call);
+    return respond(pathOf(call));
+  }) as unknown as typeof fetch;
+  return calls;
+}
+
+test("a 204 resolves to undefined, and PUT/DELETE use their methods", async () => {
+  const calls = stubFetch(() => Promise.resolve(new Response(null, { status: 204 })));
+  expect(await apiPut("/me/saved/abc")).toBeUndefined();
+  expect(await apiDelete("/me/saved/abc")).toBeUndefined();
+  expect(calls.map((c) => c.init?.method)).toEqual(["PUT", "DELETE"]);
+  expect(calls[0].init?.body).toBeUndefined();
+});
+
+test("token_expired refreshes once and replays the request", async () => {
+  let refreshed = false;
+  const calls = routeFetch((path) => {
+    if (path === "/auth/refresh") { refreshed = true; return reply(200, {}); }
+    return refreshed ? reply(200, { ok: true }) : reply(401, EXPIRED);
+  });
+  expect(await apiGet<{ ok: boolean }>("/me")).toEqual({ ok: true });
+  expect(calls.map(pathOf)).toEqual(["/me", "/auth/refresh", "/me"]);
+  expect(calls[1].init?.method).toBe("POST");
+});
+
+test("parallel expired requests share a single refresh", async () => {
+  let refreshed = false;
+  const calls = routeFetch((path) => {
+    if (path === "/auth/refresh") { refreshed = true; return reply(200, {}); }
+    return refreshed ? reply(200, []) : reply(401, EXPIRED);
+  });
+  await Promise.all([apiGet("/me"), apiGet("/me/saved"), apiGet("/me/alerts")]);
+  expect(calls.filter((c) => pathOf(c) === "/auth/refresh")).toHaveLength(1);
+});
+
+test("a failed refresh surfaces the original token_expired error", async () => {
+  const calls = routeFetch((path) => (path === "/auth/refresh" ? reply(401, ANONYMOUS) : reply(401, EXPIRED)));
+  const error = await failure(apiGet("/me"));
+  expect(error.code).toBe("token_expired");
+  expect(calls.map(pathOf)).toEqual(["/me", "/auth/refresh"]);
+});
+
+test("not_authenticated never triggers a refresh", async () => {
+  const calls = routeFetch(() => reply(401, ANONYMOUS));
+  expect((await failure(apiGet("/me"))).code).toBe("not_authenticated");
+  expect(calls).toHaveLength(1);
+});
+
+test("an expired refresh call is not itself refreshed", async () => {
+  const calls = routeFetch(() => reply(401, EXPIRED));
+  await failure(apiPost("/auth/refresh", {}));
+  expect(calls).toHaveLength(1);
 });

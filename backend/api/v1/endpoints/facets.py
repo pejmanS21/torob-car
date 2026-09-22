@@ -10,7 +10,7 @@ from services.facet_service import FacetService
 router = APIRouter(prefix="/facets", tags=["facets"])
 
 
-@router.get("", response_model=Facets)
+@router.get("")
 async def read_facets(
     service: Annotated[FacetService, Depends(get_facet_service)],
     params: Annotated[SearchParams, Query()],

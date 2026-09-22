@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CardView } from "@/lib/view";
 import styles from "./MiniListing.module.css";
 
-export function MiniListing({ card, bordered = false }: { card: CardView; bordered?: boolean }) {
+export function MiniListing({ card, bordered = false }: Readonly<{ card: CardView; bordered?: boolean }>) {
   return (
     <Link href={card.href} className={`${styles.row} ${bordered ? styles.bordered : ""}`}>
       <div role="img" aria-label={card.title} className={styles.thumb} style={{ backgroundImage: `url(${card.img})` }} />

@@ -78,6 +78,4 @@ def script_variants(query: str) -> tuple[str, ...]:
     other script. One extra variant at most, and never fewer than the original."""
     words = query.split()
     swapped = [_SCRIPT_EQUIVALENTS.get(word, word) for word in words]
-    if swapped == words:
-        return (query,)
-    return (query, " ".join(swapped))
+    return tuple(dict.fromkeys((query, " ".join(swapped))))

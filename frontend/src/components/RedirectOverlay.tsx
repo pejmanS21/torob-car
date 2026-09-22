@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import styles from "./RedirectOverlay.module.css";
 
 /** Full-screen "taking you to <site>" card shown while an outbound ad link opens.
@@ -8,13 +9,15 @@ export function RedirectOverlay({
   sourceLabel,
   title,
   url,
-}: {
+}: Readonly<{
   sourceLabel: string;
   title: string;
   url: string;
-}) {
+}>) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { dialog.current?.showModal(); }, []);
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true" aria-live="polite">
+    <dialog ref={dialog} className={styles.backdrop} aria-label="انتقال به آگهی" aria-live="polite">
       <div className={styles.card}>
         <span className={styles.badge} aria-hidden="true">
           <span className={styles.badgeRing} />
@@ -28,7 +31,7 @@ export function RedirectOverlay({
         </a>
         <span className={styles.progress} aria-hidden="true" />
       </div>
-    </div>
+    </dialog>
   );
 }
 

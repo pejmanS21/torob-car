@@ -8,7 +8,7 @@ const ListingsMap = dynamic(() => import("./ListingsMap"), { ssr: false });
 
 interface Props { title: string; hint: string; listings: ListingCard[]; single?: boolean; sticky?: boolean; }
 
-export function MapCard({ title, hint, listings, single = false, sticky = false }: Props) {
+export function MapCard({ title, hint, listings, single = false, sticky = false }: Readonly<Props>) {
   return (
     <div className={`${styles.card} ${sticky ? styles.sticky : styles.fixed}`}>
       <div className={styles.head}><span className={styles.title}>{title}</span><span className={styles.hint}>{hint}</span></div>

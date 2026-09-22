@@ -19,9 +19,9 @@ const ESTIMATED_CATEGORIES: Category[] = ["light", "motorcycle"];
 const BODY_CONDITIONS = Object.keys(BODY_NAMES) as BodyCondition[];
 const MAX_INSURANCE_MONTHS = 12;
 const yearsBetween = (stats: ModelStats | null): number[] =>
-  stats && stats.year_min !== null && stats.year_max !== null ? Array.from({ length: stats.year_max - stats.year_min + 1 }, (_, i) => (stats.year_max as number) - i) : [];
+  stats?.year_min != null && stats.year_max !== null ? Array.from({ length: stats.year_max - stats.year_min + 1 }, (_, i) => (stats.year_max as number) - i) : [];
 
-export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Props) {
+export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Readonly<Props>) {
   const [typed, setTyped] = useState("");
   const [model, setModel] = useState<string | null>(null);
   // Type-ahead: every keystroke is a new key, so a stale response can never win.
@@ -29,6 +29,7 @@ export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Pro
   // The year select spans the chosen model's real range.
   const stats = useApi(model ? `stats:${model}` : null, (signal) => apiGet<ModelStats>(`/models/${encodeURIComponent(model as string)}/stats`, {}, signal));
   const years = yearsBetween(stats.data);
+  const yearPrompt = input.trim ? "انتخاب کن" : "اول مدل رو انتخاب کن";
   const showBody = BODY_CONDITION_CATEGORIES.includes(input.category);
 
   function pick(suggestion: CatalogSuggestion) {
@@ -44,7 +45,7 @@ export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Pro
       <p className={styles.lead}>مشخصات ماشین رو بده؛ با آگهی‌های فعال همان تیپ مقایسه می‌کنیم.</p>
       <div className={styles.fields}>
         <label className={styles.field}>
-          دسته
+          <span>دسته</span>
           <span className={styles.selectWrap}>
             <select className={styles.select} value={input.category} onChange={(event) => { clearTrim(); setTyped(""); onChange({ category: event.target.value as Category, bodyCondition: null }); }}>
               {ESTIMATED_CATEGORIES.map((category) => <option key={category} value={category}>{CATEGORY_NAMES[category]}</option>)}
@@ -53,45 +54,45 @@ export function EstimateForm({ input, onChange, onSubmit, canSubmit, busy }: Pro
           </span>
         </label>
         <label className={styles.field}>
-          برند و مدل
+          <span>برند و مدل</span>
           <input type="text" className={styles.asking} dir="rtl" spellCheck={false} value={typed} placeholder="مثلاً: پژو ۲۰۶" aria-label="برند و مدل"
             onChange={(event) => { setTyped(event.target.value); if (input.trim) clearTrim(); }} />
-          {!input.trim && suggestions.data && suggestions.data.length > 0 && (
-            <ul className={styles.suggestions} role="listbox">
-              {suggestions.data.map((s) => (
+          {!input.trim && (suggestions.data?.length ?? 0) > 0 && (
+            <ul className={styles.suggestions} aria-label="مدل‌های پیشنهادی">
+              {suggestions.data?.map((s) => (
                 <li key={s.trim}><button type="button" className={styles.suggestion} onClick={() => pick(s)}>{s.trim} <span className={styles.count}>{fa(s.count)} آگهی</span></button></li>
               ))}
             </ul>
           )}
-          {!input.trim && suggestions.data && suggestions.data.length === 0 && typed && <span className={styles.hint}>مدلی با این نام نداریم.</span>}
+          {!input.trim && suggestions.data?.length === 0 && typed && <span className={styles.hint}>مدلی با این نام نداریم.</span>}
         </label>
         <label className={styles.field}>
-          سال ساخت
+          <span>سال ساخت</span>
           <span className={styles.selectWrap}>
             <select className={styles.select} value={input.year ?? ""} disabled={!years.length} onChange={(event) => onChange({ year: event.target.value ? Number(event.target.value) : null })}>
-              <option value="">{stats.loading ? "…" : input.trim ? "انتخاب کن" : "اول مدل رو انتخاب کن"}</option>
+              <option value="">{stats.loading ? "…" : yearPrompt}</option>
               {years.map((year) => <option key={year} value={year}>{fa(year)}</option>)}
             </select>
             <Icon name="chevronDown" stroke="#667085" className={styles.selectChev} />
           </span>
         </label>
-        <label className={styles.field}>
+        <label className={styles.field} aria-label="کارکرد">
           <span className={styles.kmHead}>
-            کارکرد
+            <span>کارکرد</span>
             <b>{fa(input.kmThousands)} هزار کیلومتر</b>
           </span>
           <input type="range" min={0} max={300} step={5} value={input.kmThousands} onChange={(event) => onChange({ kmThousands: Number(event.target.value) })} className={styles.range} />
         </label>
-        <label className={styles.field}>
+        <label className={styles.field} aria-label="بیمهٔ شخص ثالث">
           <span className={styles.kmHead}>
-            بیمهٔ شخص ثالث
+            <span>بیمهٔ شخص ثالث</span>
             <b>{fa(input.insuranceMonths)} ماه</b>
           </span>
           <input type="range" min={0} max={MAX_INSURANCE_MONTHS} step={1} value={input.insuranceMonths} onChange={(event) => onChange({ insuranceMonths: Number(event.target.value) })} className={styles.range} />
         </label>
         {showBody && (
           <label className={styles.field}>
-            وضعیت بدنه
+            <span>وضعیت بدنه</span>
             <span className={styles.selectWrap}>
               <select className={styles.select} value={input.bodyCondition ?? ""} onChange={(event) => onChange({ bodyCondition: (event.target.value || null) as BodyCondition | null })}>
                 <option value="">نامشخص</option>

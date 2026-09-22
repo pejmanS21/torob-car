@@ -39,9 +39,9 @@ export default function EstimatePage() {
     setError(null);
     try {
       setResult(await apiPost<EstimateResponse>("/estimates", request));
-    } catch (failure) {
+    } catch (error_) {
       // 422 (no comparables / unknown trim) shows the backend's message inline; the form stays editable.
-      setError(failure instanceof ApiError ? failure : new ApiError(0, "network_error", "network failure"));
+      setError(error_ instanceof ApiError ? error_ : new ApiError(0, "network_error", "network failure"));
     } finally {
       setBusy(false);
     }

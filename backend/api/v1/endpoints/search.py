@@ -9,7 +9,7 @@ from services.search_service import SearchService
 router = APIRouter(prefix="/search", tags=["search"])
 
 
-@router.get("", response_model=SearchResponse)
+@router.get("")
 async def search_listings(
     service: Annotated[SearchService, Depends(get_search_service)],
     params: Annotated[SearchParams, Query()],

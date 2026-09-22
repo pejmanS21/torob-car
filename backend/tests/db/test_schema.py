@@ -47,3 +47,34 @@ async def test_primary_keys_are_generated_app_side(session: AsyncSession) -> Non
     session.add(city)
     await session.flush()
     assert city.id.version == 8
+
+
+@pytest.mark.db
+async def test_account_tables_exist_with_their_constraints(
+    session: AsyncSession,
+) -> None:
+    rows = await session.execute(
+        text(
+            "SELECT conrelid::regclass::text, conname FROM pg_constraint "
+            "WHERE conrelid::regclass::text IN "
+            "('users', 'saved_listings', 'price_alerts')"
+        )
+    )
+    constraints = {(table, name) for table, name in rows}
+    assert ("users", "users_email_key") in constraints
+    assert ("saved_listings", "uq_saved_listings_user_listing") in constraints
+    assert ("price_alerts", "price_alerts_user_id_fkey") in constraints
+
+
+@pytest.mark.db
+async def test_admin_audit_survives_its_actor(session: AsyncSession) -> None:
+    """Deleting an admin must never erase the record of what they did, so actor_id is
+    ON DELETE SET NULL and the email is denormalised onto the row."""
+    rows = await session.execute(
+        text(
+            # cast: asyncpg returns pg_catalog "char" as bytes, not str
+            "SELECT confdeltype::text FROM pg_constraint "
+            "WHERE conrelid = 'admin_audit'::regclass AND contype = 'f'"
+        )
+    )
+    assert [r[0] for r in rows] == ["n"]  # 'n' = SET NULL, not 'c' = CASCADE

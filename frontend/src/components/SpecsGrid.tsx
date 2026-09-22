@@ -1,6 +1,6 @@
 import styles from "./SpecsGrid.module.css";
 
-export function SpecsGrid({ specs }: { specs: { k: string; v: string }[] }) {
+export function SpecsGrid({ specs }: Readonly<{ specs: { k: string; v: string }[] }>) {
   return (
     <div className={styles.card}>
       <div className={styles.title}>مشخصات</div>

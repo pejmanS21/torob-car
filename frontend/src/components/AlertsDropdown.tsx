@@ -19,7 +19,7 @@ function matchText(count: number | undefined, loading: boolean, failed: boolean)
 }
 
 export function AlertsDropdown() {
-  const { alerts, loggedIn, removeAlert, toggleLogin } = useAppState();
+  const { alerts, loggedIn, removeAlert, openAuth } = useAppState();
   // Fetched live every time the dropdown opens (this component mounts on open).
   const counts = useApi(alerts.length ? JSON.stringify(alerts) : null, (signal) => Promise.all(alerts.map((a) => countMatches(a, signal))));
 
@@ -34,13 +34,13 @@ export function AlertsDropdown() {
         <div className={styles.empty}>
           برای ذخیره جست‌وجو و گرفتن هشدار قیمت، اول وارد شو.
           <div className={styles.loginWrap}>
-            <button className={styles.loginButton} onClick={toggleLogin}>ورود</button>
+            <button className={styles.loginButton} onClick={openAuth}>ورود</button>
           </div>
         </div>
       )}
 
       {loggedIn && alerts.map((a, i) => (
-        <div key={i} className={styles.row}>
+        <div key={a.id ?? i} className={styles.row}>
           <div className={styles.icon}>
             <Icon name="trendDown" stroke="#d9232e" />
           </div>
@@ -48,7 +48,7 @@ export function AlertsDropdown() {
             <div className={styles.title}>{a.title}</div>
             <div className={styles.meta}>{`قیمت کمتر از ${formatToman(a.threshold)} · ${matchText(counts.data?.[i], counts.loading, counts.error !== null)}`}</div>
           </div>
-          <button className={styles.remove} onClick={() => removeAlert(i)} title="حذف">×</button>
+          <button className={styles.remove} disabled={!a.id} onClick={() => a.id && removeAlert(a.id)} title="حذف">×</button>
         </div>
       ))}
 

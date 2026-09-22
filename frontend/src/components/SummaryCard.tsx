@@ -1,7 +1,7 @@
 import { Icon } from "./Icon";
 import styles from "./SummaryCard.module.css";
 
-export function SummaryCard({ summary }: { summary: string }) {
+export function SummaryCard({ summary }: Readonly<{ summary: string }>) {
   return (
     <div className={styles.card}>
       <div className={styles.head}>

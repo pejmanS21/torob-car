@@ -1,5 +1,6 @@
 import pytest
 
+from enums import Gearbox
 from llm.eval_cases import EVAL_CASES, EvalCase
 from llm.rules_parser import parse_with_rules
 
@@ -29,3 +30,10 @@ def test_city_with_zwnj_is_matched_after_normalisation() -> None:
 def test_empty_query_is_an_empty_intent() -> None:
     intent = parse_with_rules("   ", KNOWN_CITIES)
     assert intent.vehicles == [] and intent.price_max is None
+
+
+@pytest.mark.parametrize("gearbox", ["اتمات", "اتماتیک", "اتومات", "اتوماتیک"])
+def test_dena_plus_automatic_keeps_gearbox_out_of_vehicle_name(gearbox: str) -> None:
+    intent = parse_with_rules(f"دنا پلاس {gearbox}", KNOWN_CITIES)
+    assert intent.gearbox is Gearbox.AUTOMATIC
+    assert [vehicle.model for vehicle in intent.vehicles] == ["دنا پلاس"]

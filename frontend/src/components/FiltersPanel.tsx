@@ -25,15 +25,18 @@ function toggled<T>(list: T[], item: T): T[] | undefined {
   return next.length ? next : undefined;
 }
 
-const rangeSummary = (min: number | undefined, max: number | undefined, format: (v: number) => string): string =>
-  min && max ? `${format(min)} تا ${format(max)}` : min ? `از ${format(min)}` : max ? `تا ${format(max)}` : "";
+function rangeSummary(min: number | undefined, max: number | undefined, format: (v: number) => string): string {
+  if (min && max) return `${format(min)} تا ${format(max)}`;
+  if (min) return `از ${format(min)}`;
+  return max ? `تا ${format(max)}` : "";
+}
 
 /** Chosen options first, then the rest by count — so what is on never hides below the fold. */
 const ordered = (chosen: string[], counted: string[]): string[] => [...new Set([...chosen, ...counted])];
 
 interface Props { params: SearchOverrides; facets: Facets | null; onChange(next: SearchOverrides): void; onReset(): void; open: boolean; onClose(): void; resultCount: number | null; }
 
-export function FiltersPanel({ params, facets, onChange, onReset, open, onClose, resultCount }: Props) {
+export function FiltersPanel({ params, facets, onChange, onReset, open, onClose, resultCount }: Readonly<Props>) {
   const [moreModels, setMoreModels] = useState(false);
   const [moreCities, setMoreCities] = useState(false);
   const set = (patch: Partial<SearchOverrides>) => onChange({ ...params, ...patch });
@@ -71,19 +74,7 @@ export function FiltersPanel({ params, facets, onChange, onReset, open, onClose,
 
   // Only ticked filters get a chip: what the query implied is already spelled out above
   // the results, and is highlighted in place below.
-  const chips: { key: string; label: string; remove(): void }[] = [
-    ...(params.category ? [{ key: "category", label: CATEGORY_NAMES[params.category], remove: () => set({ category: undefined, models: undefined, gearbox: undefined }) }] : []),
-    ...(params.models ?? []).map((model) => ({ key: `m:${model}`, label: model, remove: () => set({ models: toggled(params.models ?? [], model) }) })),
-    ...(params.cities ?? []).map((city) => ({ key: `c:${city}`, label: city, remove: () => set({ cities: toggled(params.cities ?? [], city) }) })),
-    ...(params.price_min || params.price_max ? [{ key: "price", label: rangeSummary(params.price_min, params.price_max, formatToman), remove: () => set({ price_min: undefined, price_max: undefined }) }] : []),
-    ...(params.year_min || params.year_max ? [{ key: "year", label: `سال ${rangeSummary(params.year_min, params.year_max, fa)}`, remove: () => set({ year_min: undefined, year_max: undefined }) }] : []),
-    ...(params.km_min || params.km_max ? [{ key: "km", label: `کارکرد ${rangeSummary(params.km_min, params.km_max, kmLabel)}`, remove: () => set({ km_min: undefined, km_max: undefined }) }] : []),
-    ...(params.gearbox ? [{ key: "gearbox", label: GEARBOX_NAMES[params.gearbox], remove: () => set({ gearbox: undefined }) }] : []),
-    ...(params.sources ?? []).map((source) => ({ key: `s:${source}`, label: SOURCE_NAMES[source], remove: () => set({ sources: toggled(params.sources ?? [], source) }) })),
-    ...(params.price_types ?? []).map((type) => ({ key: `p:${type}`, label: PRICE_TYPE_NAMES[type], remove: () => set({ price_types: toggled(params.price_types ?? [], type) }) })),
-    ...(params.document_statuses ?? []).map((status) => ({ key: `d:${status}`, label: DOCUMENT_STATUS_NAMES[status], remove: () => set({ document_statuses: toggled(params.document_statuses ?? [], status) }) })),
-    ...(params.only_below ? [{ key: "below", label: "ارزان‌تر از بازار", remove: () => set({ only_below: undefined }) }] : []),
-  ];
+  const chips = filterChips(params, set);
 
   return (
     <>
@@ -101,7 +92,7 @@ export function FiltersPanel({ params, facets, onChange, onReset, open, onClose,
           )}
           <label className={styles.switchRow}>
             <input type="checkbox" checked={onlyBelow} onChange={() => set({ only_below: onlyBelow ? undefined : true })} />
-            فقط ارزان‌تر از بازار
+            <span>فقط ارزان‌تر از بازار</span>
           </label>
 
           <Section title="دسته" summary={category ? CATEGORY_NAMES[category] : ""} defaultOpen>
@@ -181,13 +172,13 @@ export function FiltersPanel({ params, facets, onChange, onReset, open, onClose,
         </div>
         <div className={styles.sheetFoot}><button type="button" className={styles.apply} onClick={onClose}>{resultCount === null ? "نمایش آگهی‌ها" : `نمایش ${fa(resultCount)} آگهی`}</button></div>
       </aside>
-      {open && <div className={styles.backdrop} onClick={onClose} />}
+      {open && <button type="button" aria-label="بستن فیلترها" className={styles.backdrop} onClick={onClose} />}
     </>
   );
 }
 
 /** A collapsible group. Collapsed, its summary still says what is chosen inside. */
-function Section({ title, summary, defaultOpen, children }: { title: string; summary: string; defaultOpen: boolean; children: React.ReactNode }) {
+function Section({ title, summary, defaultOpen, children }: Readonly<{ title: string; summary: string; defaultOpen: boolean; children: React.ReactNode }>) {
   return (
     <details className={styles.section} open={defaultOpen}>
       <summary className={styles.summary}>
@@ -207,7 +198,7 @@ interface RangeRowProps {
 
 /** «از … تا …». Each end only offers values that keep the range valid, and a bound the
  * query text set (say «زیر ۷۵۰ میلیون») joins the steps so it shows as selected. */
-function RangeRow({ label, min, max, steps, format, unit, reach, onChange }: RangeRowProps) {
+function RangeRow({ label, min, max, steps, format, unit, reach, onChange }: Readonly<RangeRowProps>) {
   const options = [...new Set([...steps, ...(min ? [min] : []), ...(max ? [max] : [])])].sort((a, b) => a - b);
   const [low, high] = reach;
   const pick = (value: string): number | undefined => (value ? Number(value) : undefined);
@@ -227,4 +218,21 @@ function RangeRow({ label, min, max, steps, format, unit, reach, onChange }: Ran
       {low != null && high != null && <div className={styles.hint}>در این جست‌وجو: {format(low)} تا {format(high)}{unit ? ` ${unit}` : ""}</div>}
     </>
   );
+}
+
+function filterChips(params: SearchOverrides, set: (patch: Partial<SearchOverrides>) => void) {
+  const chips: { key: string; label: string; remove(): void }[] = [
+    ...(params.category ? [{ key: "category", label: CATEGORY_NAMES[params.category], remove: () => set({ category: undefined, models: undefined, gearbox: undefined }) }] : []),
+    ...(params.models ?? []).map((model) => ({ key: `m:${model}`, label: model, remove: () => set({ models: toggled(params.models ?? [], model) }) })),
+    ...(params.cities ?? []).map((city) => ({ key: `c:${city}`, label: city, remove: () => set({ cities: toggled(params.cities ?? [], city) }) })),
+    ...(params.price_min || params.price_max ? [{ key: "price", label: rangeSummary(params.price_min, params.price_max, formatToman), remove: () => set({ price_min: undefined, price_max: undefined }) }] : []),
+    ...(params.year_min || params.year_max ? [{ key: "year", label: `سال ${rangeSummary(params.year_min, params.year_max, fa)}`, remove: () => set({ year_min: undefined, year_max: undefined }) }] : []),
+    ...(params.km_min || params.km_max ? [{ key: "km", label: `کارکرد ${rangeSummary(params.km_min, params.km_max, kmLabel)}`, remove: () => set({ km_min: undefined, km_max: undefined }) }] : []),
+    ...(params.gearbox ? [{ key: "gearbox", label: GEARBOX_NAMES[params.gearbox], remove: () => set({ gearbox: undefined }) }] : []),
+    ...(params.sources ?? []).map((source) => ({ key: `s:${source}`, label: SOURCE_NAMES[source], remove: () => set({ sources: toggled(params.sources ?? [], source) }) })),
+    ...(params.price_types ?? []).map((type) => ({ key: `p:${type}`, label: PRICE_TYPE_NAMES[type], remove: () => set({ price_types: toggled(params.price_types ?? [], type) }) })),
+    ...(params.document_statuses ?? []).map((status) => ({ key: `d:${status}`, label: DOCUMENT_STATUS_NAMES[status], remove: () => set({ document_statuses: toggled(params.document_statuses ?? [], status) }) })),
+    ...(params.only_below ? [{ key: "below", label: "ارزان‌تر از بازار", remove: () => set({ only_below: undefined }) }] : []),
+  ];
+  return chips;
 }

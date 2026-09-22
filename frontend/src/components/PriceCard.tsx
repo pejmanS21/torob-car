@@ -13,7 +13,7 @@ import styles from "./PriceCard.module.css";
 // Long enough for the interstitial to read as a hand-off rather than a flicker.
 const REDIRECT_DELAY_MS = 1100;
 
-export function PriceCard({ detail, card }: { detail: ListingDetail; card: CardView }) {
+export function PriceCard({ detail, card }: Readonly<{ detail: ListingDetail; card: CardView }>) {
   const { compare, saved, toggleCompare, toggleSaved } = useAppState();
   const [opening, setOpening] = useState(false);
   const inCompare = compare.includes(detail.id);

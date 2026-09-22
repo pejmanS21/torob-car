@@ -5,7 +5,7 @@ import { ScoreBar } from "./ScoreBar";
 import { VerdictBadge } from "./VerdictBadge";
 import styles from "./ListingCard.module.css";
 
-export function ListingCard({ card }: { card: CardView }) {
+export function ListingCard({ card }: Readonly<{ card: CardView }>) {
   return (
     <Link href={card.href} className={styles.card}>
       <div className={styles.photoWrap}>

@@ -1,9 +1,9 @@
 import asyncio
+import json
 
 import pytest
-from pydantic_ai import Agent, ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai import Agent, ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from pydantic_ai.models.test import TestModel
 
 from enums import ParsedBy
 from errors import InvalidSearchError
@@ -28,7 +28,13 @@ def make_parser(
 
 
 def agent_returning(output: dict) -> Agent:
-    return build_intent_agent(TestModel(custom_output_args=output))
+    """PromptedOutput takes its answer from the text part, so the stand-in model
+    returns JSON rather than TestModel's tool-call output."""
+
+    def fixed(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        return ModelResponse(parts=[TextPart(json.dumps(output))])
+
+    return build_intent_agent(FunctionModel(fixed))
 
 
 async def test_llm_result_is_used_and_cached() -> None:
@@ -56,7 +62,8 @@ async def test_rules_parser_rejects_an_impossible_year_as_invalid_search() -> No
 async def test_invalid_llm_output_falls_back_to_rules_and_is_not_cached() -> None:
     def always_invalid(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         bad = {"price_min": 900 * MILLION, "price_max": 100 * MILLION}
-        return ModelResponse(parts=[ToolCallPart(info.output_tools[0].name, bad)])
+        # PromptedOutput: the intent comes back as JSON text, not an output tool call.
+        return ModelResponse(parts=[TextPart(json.dumps(bad))])
 
     cache = DictCache()
     parser = make_parser(build_intent_agent(FunctionModel(always_invalid)), cache)

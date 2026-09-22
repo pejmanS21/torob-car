@@ -6,7 +6,7 @@ import type { ModelStats } from "@/lib/api/types";
 import { encodePathSegment } from "@/lib/url";
 
 // Rendered on request (no generateStaticParams).
-export default async function ModelPage({ params }: { params: Promise<{ model: string }> }) {
+export default async function ModelPage({ params }: Readonly<{ params: Promise<{ model: string }> }>) {
   await connection();
   const { model } = await params;
   let stats: ModelStats;

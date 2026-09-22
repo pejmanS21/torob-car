@@ -98,8 +98,36 @@ export interface EstimateResponse {
   asking_verdict: Verdict | null; asking_diff_pct: number | null; similar: ListingCard[];
 }
 
-export interface AssistantMessage { role: ChatRole; text: string; }
-export interface AssistantRequest { messages: AssistantMessage[]; compare_ids: string[]; }
-export interface AssistantResponse { text: string; listings: ListingCard[]; answered_by: ParsedBy; }
+export interface AssistantMessage { role: ChatRole; text: string; listing_ids?: string[]; }
+export interface AssistantRequest { messages: AssistantMessage[]; compare_ids: string[]; chat_id?: string | null; }
+export interface AssistantResponse { text: string; listings: ListingCard[]; answered_by: ParsedBy; chat_id: string | null; }
+
+// Stored conversations — mirrors backend/schemas/chat.py. Anonymous visitors never
+// see these: the backend answers them but keeps nothing.
+export interface ChatSummary { id: string; title: string; updated_at: string; }
+export interface ChatMessageRead { role: ChatRole; text: string; listings: ListingCard[]; }
+export interface ChatDetail { id: string; title: string; updated_at: string; messages: ChatMessageRead[]; }
 
 export interface ApiErrorBody { error: { code: string; message: string; details: unknown }; }
+
+/** Mirrors backend `schemas/auth.py` and `schemas/account.py`. */
+export type UserRole = "user" | "admin";
+export interface UserRead { id: string; email: string; role: UserRole; created_at: string; }
+export interface AuthRequest { email: string; password: string; }
+export interface PriceAlertCreate { title: string; threshold: number; params: SearchParams; }
+export interface PriceAlertRead extends PriceAlertCreate { id: string; created_at: string; }
+export interface ImportRequest { saved: string[]; alerts: PriceAlertCreate[]; }
+export interface AccountState { saved: string[]; alerts: PriceAlertRead[]; }
+
+/** Mirrors backend `schemas/admin.py`. */
+export type AdminAction =
+  | "user_disabled" | "user_enabled" | "user_promoted"
+  | "user_demoted" | "user_password_reset" | "user_deleted";
+export interface AdminUserRow { id: string; email: string; role: UserRole; is_active: boolean; created_at: string; last_login_at: string | null; }
+export interface AdminUserDetail extends AdminUserRow { saved_count: number; alert_count: number; }
+export interface AdminUserPage { items: AdminUserRow[]; total: number; }
+export interface AdminUserUpdate { is_active?: boolean; role?: UserRole; }
+export interface AdminPasswordReset { new: string; }
+export interface AuditRow { id: string; actor_id: string | null; actor_email: string; action: AdminAction; target_type: string; target_id: string | null; summary: Record<string, unknown>; created_at: string; }
+export interface AuditPage { items: AuditRow[]; total: number; }
+export interface AdminStats { users_total: number; users_active: number; admins_active: number; listings_total: number; newest_listing_fetched_at: string | null; recent_audit: AuditRow[]; }

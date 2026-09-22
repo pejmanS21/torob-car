@@ -1,7 +1,7 @@
 import type { BreakdownRow } from "@/lib/types";
 import styles from "./BreakdownList.module.css";
 
-export function BreakdownRows({ rows }: { rows: BreakdownRow[] }) {
+export function BreakdownRows({ rows }: Readonly<{ rows: BreakdownRow[] }>) {
   return (
     <>
       {rows.map((row) => (
@@ -19,7 +19,7 @@ export function BreakdownRows({ rows }: { rows: BreakdownRow[] }) {
   );
 }
 
-export function BreakdownList({ title, rows }: { title: string; rows: BreakdownRow[] }) {
+export function BreakdownList({ title, rows }: Readonly<{ title: string; rows: BreakdownRow[] }>) {
   return (
     <div className={styles.card}>
       <div className={styles.title}>{title}</div>

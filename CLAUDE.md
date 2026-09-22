@@ -18,6 +18,19 @@ This is a **monolith fullstack** application kept in a single repository:
 - **Cache / LLM** — Redis caches parsed intents and ranked result lists; Pydantic AI
   turns free text into a typed `SearchIntent` (Gemini in development, any
   OpenAI-compatible API in production). The LLM never writes SQL.
+- **Accounts** — email + password; stateless JWTs in two `HttpOnly` cookies (15-minute
+  access, 30-day refresh). `users.token_version` is copied into every token and checked
+  at refresh, so bumping it revokes a user within one access-token lifetime.
+  `require_admin` always re-reads the database. Server Components stay anonymous; all
+  `/me` data loads client-side.
+- **Admin** — `/api/v1/admin` is guarded by a router-level `require_admin`; destructive
+  routes additionally require `require_fresh_admin`. Tokens carry an `auth_at` claim
+  stamped only by a real password entry — a refresh copies it through — so admin access
+  expires after `ADMIN_SESSION_MINUTES` even on a live session. Every admin mutation
+  writes an `admin_audit` row in the same transaction as the change. An unknown user id
+  on an admin route returns 404 `admin_user_not_found`, not 401 —
+  `AdminUserService._load` raises its own error rather than reusing `AuthService`'s,
+  because the id comes from the URL rather than the caller's token.
 - **Delivery** — Dockerized, orchestrated with Compose, shipped via GitHub Actions
   to Docker Hub.
 
@@ -71,7 +84,7 @@ the frontend, so the whole app is served from one origin.
 │   ├── errors.py                # Custom exceptions + exception handlers
 │   ├── core/
 │   │   ├── config.py            # Settings via pydantic-settings
-│   │   ├── security.py
+│   │   ├── security.py          # scrypt password hashing + JWT encode/decode
 │   │   ├── logging.py
 │   │   ├── cache.py              # Thin async Redis wrapper (get_json / set_json / incr)
 │   │   └── text.py               # normalize_persian() — the single text normaliser
@@ -83,7 +96,8 @@ the frontend, so the whole app is served from one origin.
 │   │   ├── health.py            # Liveness / readiness
 │   │   └── v1/
 │   │       ├── router.py        # Aggregates all v1 endpoint routers
-│   │       └── endpoints/       # One thin module per resource
+│   │       ├── endpoints/       # One thin module per resource
+│   │       └── admin/           # Guarded admin API (router-level require_admin)
 │   ├── models/                  # SQLAlchemy ORM models (persistence layer)
 │   ├── schemas/                 # Pydantic models (transport layer)
 │   ├── services/                # Business logic (classes)
@@ -162,6 +176,12 @@ LLM_PROVIDER=google
 LLM_MODEL=gemini-3.7-flash
 LLM_API_KEY=
 LLM_BASE_URL=
+# Auth — JWT_SECRET >= 32 bytes (setup.sh generates it); admin is created at startup
+JWT_SECRET=
+ADMIN_EMAIL=
+ADMIN_PASSWORD=
+ADMIN_SESSION_MINUTES=60
+ADMIN_REAUTH_MINUTES=5
 # Frontend — Server Components call the backend directly on the Compose network;
 # the browser uses /api/v1 on the same origin through Traefik (no variable needed).
 API_INTERNAL_URL=http://backend:8000
@@ -642,8 +662,8 @@ backend:
     - traefik.http.routers.api-search.middlewares=search-ratelimit
     - traefik.http.middlewares.search-ratelimit.ratelimit.average=10
     - traefik.http.middlewares.search-ratelimit.ratelimit.burst=20
-    # LLM-backed and estimator routes: tighter limit, same explicit priority tier.
-    - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`)
+    # LLM-backed, estimator and auth routes: tighter limit, same explicit priority tier.
+    - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`) || PathPrefix(`/api/v1/auth`)
     - traefik.http.routers.api-assistant.priority=100
     - traefik.http.routers.api-assistant.entrypoints=web
     - traefik.http.routers.api-assistant.service=backend
@@ -710,8 +730,8 @@ services:
       - traefik.http.routers.api-search.middlewares=search-ratelimit
       - traefik.http.middlewares.search-ratelimit.ratelimit.average=10
       - traefik.http.middlewares.search-ratelimit.ratelimit.burst=20
-      # LLM-backed and estimator routes: tighter limit, same explicit priority tier.
-      - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`)
+      # LLM-backed, estimator and auth routes: tighter limit, same explicit priority tier.
+      - traefik.http.routers.api-assistant.rule=PathPrefix(`/api/v1/assistant`) || PathPrefix(`/api/v1/estimates`) || PathPrefix(`/api/v1/auth`)
       - traefik.http.routers.api-assistant.priority=100
       - traefik.http.routers.api-assistant.entrypoints=web
       - traefik.http.routers.api-assistant.service=backend

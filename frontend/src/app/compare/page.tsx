@@ -26,8 +26,8 @@ export default function ComparePage() {
       )}
       {cards.loading && <Skeleton lines={[120, 40, 40, 40]} />}
       {cards.error && <ErrorBanner error={cards.error} onRetry={cards.retry} />}
-      {cards.data && cards.data.length > 0 && <CompareTable cards={cards.data} onRemove={removeFromCompare} />}
-      {cards.data && cards.data.length === 0 && <div className={styles.empty}>این آگهی‌ها دیگر فعال نیستند.</div>}
+      {(cards.data?.length ?? 0) > 0 && <CompareTable cards={cards.data ?? []} onRemove={removeFromCompare} />}
+      {cards.data?.length === 0 && <div className={styles.empty}>این آگهی‌ها دیگر فعال نیستند.</div>}
     </section>
   );
 }

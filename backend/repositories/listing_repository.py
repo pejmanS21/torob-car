@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import (
     ColumnElement,
@@ -200,7 +200,7 @@ class ListingRepository:
         if category is not None:
             statement = statement.where(Listing.category == category)
         found = await self._session.execute(statement)
-        return {category: total for category, total in found}
+        return dict(found.all())
 
     async def count_facet(
         self, scope: FacetScope, dimension: FacetDimension, limit: int
@@ -229,16 +229,20 @@ class ListingRepository:
     async def facet_ranges(self, scope: FacetScope) -> FacetRanges:
         """The spread of price, km and year the search could still reach — its own
         range bounds left out, otherwise the answer would just echo them."""
-        unbounded = replace(
-            scope.filters,
-            price_floor=None,
-            price_ceiling=None,
-            km_floor=None,
-            km_ceiling=None,
-            year_floor=None,
-            year_ceiling=None,
+        unbounded = cast(
+            CandidateFilter,
+            replace(
+                scope.filters,
+                price_floor=None,
+                price_ceiling=None,
+                km_floor=None,
+                km_ceiling=None,
+                year_floor=None,
+                year_ceiling=None,
+            ),
         )
         trusted_price = case((Listing.price_suspect, null()), else_=Listing.price)
+        unbounded_scope = cast(FacetScope, replace(scope, filters=unbounded))
         statement = self._joined(
             select(
                 func.min(trusted_price),
@@ -248,7 +252,7 @@ class ListingRepository:
                 func.min(Listing.year),
                 func.max(Listing.year),
             )
-        ).where(*self._scope_conditions(replace(scope, filters=unbounded), None))
+        ).where(*self._scope_conditions(unbounded_scope, None))
         price_min, price_max, km_min, km_max, year_min, year_max = (
             await self._session.execute(statement)
         ).one()

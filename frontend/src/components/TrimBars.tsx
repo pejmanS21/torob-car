@@ -5,7 +5,7 @@ import styles from "./TrimBars.module.css";
 const MAX_TRIMS = 6;
 
 /** Share of the model's listings per trim, with each trim's median price. */
-export function TrimBars({ trims, total }: { trims: TrimStat[]; total: number }) {
+export function TrimBars({ trims, total }: Readonly<{ trims: TrimStat[]; total: number }>) {
   return (
     <div className={styles.card}>
       <div className={styles.title}>تیپ‌های این مدل</div>

@@ -27,7 +27,7 @@ class CityRepository:
                 statement.on_conflict_do_nothing(index_elements=[City.name])
             )
         found = await self._session.execute(select(City.name, City.id))
-        return {name: city_id for name, city_id in found}
+        return dict(found.all())
 
     async def refresh_statistics(self) -> None:
         """Centroid = median of the city's listing coordinates (no gazetteer)."""
