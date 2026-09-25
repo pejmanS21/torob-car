@@ -91,6 +91,8 @@ This extracts and loads the Divar, Bama, Karnameh, and Hamrah Mechanic CSVs.
 `-n` preserves any existing extracted files. To load an individual CSV later, run
 `./.scripts/ingest.sh assets/bama.csv`. Extracted CSVs stay ignored by Git.
 
+The CSVs were crawled with [drill](https://github.com/pejmanS21/drill).
+
 ### API (`/api/v1`)
 
 | Endpoint | Purpose |
